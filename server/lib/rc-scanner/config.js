@@ -115,6 +115,44 @@ export class Config {
             res.send(devices);
         });
 
+        app.router.get('/audio.wav', (req, res) => {
+            const audio = app.rcScanner?.audio;
+
+            if (!audio) {
+                return res.status(503).send({ error: 'Audio input is unavailable' });
+            }
+
+            res.set({
+                'Cache-Control': 'no-store',
+                'Content-Type': 'audio/wav',
+                'Transfer-Encoding': 'chunked',
+            });
+
+            res.write(createWavHeader(this.audio.sampleRate));
+
+            const audioHandler = (data) => res.write(data);
+
+            audio.on('data', audioHandler);
+            req.on('close', () => audio.removeListener('data', audioHandler));
+        });
+
+        app.router.get('/audio/test.wav', (req, res) => {
+            const sampleRate = 44100;
+            const samples = Math.round(sampleRate * 0.25);
+            const pcm = Buffer.alloc(samples * 2);
+
+            for (let i = 0; i < samples; i++) {
+                const value = Math.round(Math.sin((2 * Math.PI * 880 * i) / sampleRate) * 8192);
+                pcm.writeInt16LE(value, i * 2);
+            }
+
+            res.set({
+                'Cache-Control': 'no-store',
+                'Content-Type': 'audio/wav',
+            });
+            res.send(Buffer.concat([createWavHeader(sampleRate, pcm.length), pcm]));
+        });
+
         app.router.get('/status', async (req, res) => {
             const status = await app.rcScanner?.ws?.getControlStatus();
 
@@ -154,4 +192,23 @@ export class Config {
             return res.send({ deviceId });
         });
     }
+}
+
+function createWavHeader(sampleRate, dataLength = 0xffffffff) {
+    const header = Buffer.alloc(44);
+
+    header.write('RIFF', 0);
+    header.writeUInt32LE(Math.min(0xffffffff, 36 + dataLength), 4);
+    header.write('WAVEfmt ', 8);
+    header.writeUInt32LE(16, 16);
+    header.writeUInt16LE(1, 20);
+    header.writeUInt16LE(1, 22);
+    header.writeUInt32LE(sampleRate, 24);
+    header.writeUInt32LE(sampleRate * 2, 28);
+    header.writeUInt16LE(2, 32);
+    header.writeUInt16LE(16, 34);
+    header.write('data', 36);
+    header.writeUInt32LE(dataLength, 40);
+
+    return header;
 }

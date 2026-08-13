@@ -75,6 +75,10 @@ export class AppRcScannerService implements OnDestroy {
 
     private isPowerOn = false;
 
+    private nativeAudio: HTMLAudioElement | undefined;
+
+    private testToneAudio: HTMLAudioElement | undefined;
+
     private scannerConfig: AppRcScannerConfig | undefined;
 
     private wsAudio: WebSocket | undefined;
@@ -98,50 +102,21 @@ export class AppRcScannerService implements OnDestroy {
     }
 
     async enableAudioPlayback(): Promise<void> {
-        const audioContext = this.getAudioContext();
-
-        // iOS needs an actual source to start during the user gesture, not just resume().
-        const unlockBuffer = audioContext.createBuffer(1, 1, audioContext.sampleRate);
-        const unlockSource = audioContext.createBufferSource();
-        unlockSource.buffer = unlockBuffer;
-        unlockSource.connect(audioContext.destination);
-        const resume = audioContext.resume();
-        unlockSource.start();
-
-        await resume;
+        void this.openNativeAudioStream();
 
         if (!this.isPowerOn) {
             this.isPowerOn = true;
 
-            this.openAudioWebSocket();
-
             this.openControlWebSocket();
 
             this.startControlStatusFallback();
-
-        } else if (!(this.wsAudio instanceof WebSocket)) {
-            this.openAudioWebSocket();
         }
     }
 
     async playAudioTestTone(): Promise<void> {
-        const audioContext = this.getAudioContext();
-        const oscillator = audioContext.createOscillator();
-        const gain = audioContext.createGain();
-
-        oscillator.frequency.value = 880;
-        gain.gain.value = 0.08;
-        oscillator.connect(gain);
-        gain.connect(audioContext.destination);
-        const resume = audioContext.resume();
-        oscillator.start();
-        oscillator.stop(audioContext.currentTime + 0.2);
-
-        await resume;
-
-        if (!this.isPowerOn) {
-            await this.enableAudioPlayback();
-        }
+        this.testToneAudio?.pause();
+        this.testToneAudio = new Audio(this.getUrl('audio/test.wav'));
+        await this.testToneAudio.play();
     }
 
     ngOnDestroy(): void {
@@ -156,6 +131,9 @@ export class AppRcScannerService implements OnDestroy {
         if (this.wsAudio instanceof WebSocket) {
             this.wsAudio.close();
         }
+
+        this.nativeAudio?.pause();
+        this.testToneAudio?.pause();
 
         if (this.wsControl instanceof WebSocket) {
             this.wsControl.close();
@@ -338,6 +316,17 @@ export class AppRcScannerService implements OnDestroy {
                 this.wsAudio.onmessage = (ev: MessageEvent) => this.playAudioFrame(ev.data);
             }
         };
+    }
+
+    private async openNativeAudioStream(): Promise<void> {
+        if (!this.nativeAudio) {
+            this.nativeAudio = new Audio(this.getUrl('audio.wav'));
+            this.nativeAudio.preload = 'none';
+            this.nativeAudio.onplaying = () => this.audioStatus.emit('Playing scanner audio.');
+            this.nativeAudio.onerror = () => this.audioStatus.emit('Safari could not open the scanner audio stream.');
+        }
+
+        await this.nativeAudio.play();
     }
 
     private async playAudioFrame(data: unknown): Promise<void> {
