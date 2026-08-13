@@ -91,6 +91,18 @@
   line-height: 1;
 }
 
+.audio-drawer__toggle.is-open {
+  padding: 0 16px;
+  width: auto;
+}
+
+.audio-drawer__toggle-close {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
 .audio-drawer__panel {
   background: linear-gradient(180deg, #2a2a2a 0%, #1d1d1d 100%);
   border: 1px solid rgba(255, 255, 255, 0.08);

@@ -13,9 +13,11 @@
 </button>
 
 <div class="audio-drawer" [class.is-open]="audioPanelOpen">
-    <button class="audio-drawer__toggle" type="button" aria-label="Audio settings" [attr.aria-expanded]="audioPanelOpen"
+    <button class="audio-drawer__toggle" type="button" [class.is-open]="audioPanelOpen"
+        [attr.aria-label]="audioPanelOpen ? 'Close audio settings' : 'Audio settings'" [attr.aria-expanded]="audioPanelOpen"
         (click)="toggleAudioPanel()">
-        <span class="audio-drawer__toggle-icon" aria-hidden="true">⚙</span>
+        <span *ngIf="!audioPanelOpen" class="audio-drawer__toggle-icon" aria-hidden="true">⚙</span>
+        <span *ngIf="audioPanelOpen" class="audio-drawer__toggle-close" aria-hidden="true">Close ×</span>
     </button>
 
     <div class="audio-drawer__panel" *ngIf="audioPanelOpen">
