@@ -337,6 +337,10 @@ export class AppRcScannerService implements OnDestroy {
                 return;
             }
 
+            if (this.audioFramesReceived === 0) {
+                this.audioStatus.emit(`Decoding ${arrayBuffer.byteLength} bytes of scanner audio...`);
+            }
+
             const arrayBufferView = new Int16Array(arrayBuffer);
             const audioBuffer = this.audioContext.createBuffer(1, arrayBufferView.length, this.scannerConfig.sampleRate);
             const audioChannel = audioBuffer.getChannelData(0);
@@ -361,7 +365,8 @@ export class AppRcScannerService implements OnDestroy {
 
         } catch (error) {
             console.warn('Unable to play scanner audio.', error);
-            this.audioStatus.emit('Safari could not decode the scanner audio stream.');
+            const detail = error instanceof Error && error.message ? `: ${error.message}` : '';
+            this.audioStatus.emit(`Safari audio error${detail}`);
         }
     }
 
