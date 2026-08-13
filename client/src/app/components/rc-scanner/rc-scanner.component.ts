@@ -46,7 +46,12 @@ export class AppRcScannerComponent implements OnDestroy {
 
     screenWakeLockActive = false;
 
-    private screenWakeLock: { release: () => Promise<void> } | undefined;
+    screenWakeLockStatus: 'off' | 'on' | 'unavailable' = 'off';
+
+    private screenWakeLock: {
+        addEventListener?: (type: 'release', listener: () => void) => void;
+        release: () => Promise<void>;
+    } | undefined;
 
     private subscription = new Subscription();
 
@@ -148,15 +153,23 @@ export class AppRcScannerComponent implements OnDestroy {
         };
 
         if (!wakeLock.wakeLock) {
+            this.screenWakeLockStatus = 'unavailable';
             return;
         }
 
         try {
             this.screenWakeLock = await wakeLock.wakeLock.request('screen');
             this.screenWakeLockActive = true;
+            this.screenWakeLockStatus = 'on';
+            this.screenWakeLock.addEventListener?.('release', () => {
+                this.screenWakeLock = undefined;
+                this.screenWakeLockActive = false;
+                this.screenWakeLockStatus = 'off';
+            });
 
         } catch (error) {
             console.warn('Unable to keep the screen awake.', error);
+            this.screenWakeLockStatus = 'unavailable';
         }
     }
 
@@ -167,5 +180,6 @@ export class AppRcScannerComponent implements OnDestroy {
         }
 
         this.screenWakeLockActive = false;
+        this.screenWakeLockStatus = 'off';
     }
 }
