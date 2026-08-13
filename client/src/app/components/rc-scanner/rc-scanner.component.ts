@@ -89,14 +89,14 @@ export class AppRcScannerComponent implements OnDestroy {
                 this.audioDevices = devices;
 
                 if (devices.length > 0) {
-                    this.audioStatus = 'Select the Mac input that carries scanner audio.';
+                    this.audioStatus = 'Select the audio device that carries scanner audio.';
 
                 } else {
-                    this.audioStatus = 'No Mac input devices were found.';
+                    this.audioStatus = 'No audio devices were found.';
                 }
             },
             error: () => {
-                this.audioStatus = 'Unable to load Mac audio inputs.';
+                this.audioStatus = 'Unable to load audio devices.';
             },
         }));
     }

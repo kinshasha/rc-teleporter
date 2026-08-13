@@ -22,12 +22,12 @@
 
     <div class="audio-drawer__panel" *ngIf="audioPanelOpen">
         <label class="audio-drawer__label" for="audio-device">
-            <span class="audio-drawer__title">Mac input</span>
+            <span class="audio-drawer__title">Audio device</span>
             <span class="audio-drawer__subtitle">Pick the interface that feeds scanner audio</span>
         </label>
 
         <div class="audio-drawer__controls">
-            <div class="audio-device-list" role="listbox" aria-label="Mac audio inputs">
+            <div class="audio-device-list" role="listbox" aria-label="Audio devices">
                 <button class="audio-device" type="button" [class.is-selected]="audioDeviceId === -1"
                     (click)="selectAudioDevice(-1)">
                     <span>Default input</span>
