@@ -285,10 +285,10 @@ $led-yellow: #e6e632;
   }
 
   .display {
-    > div {
-      height: auto;
-      min-height: 220px;
-    }
+    // The direct children are individual scanner LCD lines. Giving each one
+    // a phone-sized minimum height pushes the rendered status out of view.
+    height: auto;
+    min-height: 220px;
   }
 }
 
