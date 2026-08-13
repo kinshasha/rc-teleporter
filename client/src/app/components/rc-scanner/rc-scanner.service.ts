@@ -252,13 +252,13 @@ export class AppRcScannerService implements OnDestroy {
     }
 
     private getUrl(path: string, options: { ws?: boolean } = {}): string {
-        let url = window.location.href.replace(/[^\/]+$/, '') + path.replace(/^\//, '');
+        const url = new URL(path.replace(/^\//, ''), `${window.location.origin}/`);
 
         if (options.ws) {
-            url = url.replace(/^http/, 'ws');
+            url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
         }
 
-        return url;
+        return url.toString();
     }
 
     private openAudioWebSocket(): void {

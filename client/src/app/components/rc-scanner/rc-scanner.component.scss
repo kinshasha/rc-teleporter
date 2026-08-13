@@ -101,20 +101,40 @@
 }
 
 .audio-drawer__controls {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
   gap: 12px;
 }
 
-.audio-drawer__select {
+.audio-device-list {
+  display: grid;
+  gap: 8px;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.audio-device {
+  align-items: flex-start;
   background: #111;
   border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 10px;
   color: #f3f3f3;
-  flex: 1 1 260px;
+  cursor: pointer;
+  display: grid;
   font: inherit;
-  min-width: 0;
+  gap: 3px;
+  min-height: 56px;
+  text-align: left;
   padding: 10px 12px;
+}
+
+.audio-device.is-selected {
+  background: #3d3d3d;
+  border-color: rgba(255, 255, 255, 0.52);
+}
+
+.audio-device__meta {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 12px;
 }
 
 .audio-drawer__button {
@@ -154,14 +174,7 @@
   }
 
   .audio-drawer__controls {
-    flex-direction: column;
-  }
-
-  .audio-drawer__select,
-  .audio-drawer__button {
-    flex: 0 0 auto;
     min-height: 48px;
-    width: 100%;
   }
 
   .app-version {

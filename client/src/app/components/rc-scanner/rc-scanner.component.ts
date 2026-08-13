@@ -88,14 +88,7 @@ export class AppRcScannerComponent implements OnDestroy {
         }));
     }
 
-    onAudioDeviceChange(event: Event): void {
-        const target = event.target as HTMLSelectElement | null;
-        const nextDeviceId = target ? Number.parseInt(target.value, 10) : NaN;
-
-        if (!Number.isInteger(nextDeviceId)) {
-            return;
-        }
-
+    selectAudioDevice(nextDeviceId: number): void {
         this.audioDeviceId = nextDeviceId;
         this.audioStatus = 'Saving audio input...';
 
@@ -115,5 +108,9 @@ export class AppRcScannerComponent implements OnDestroy {
 
     toggleAudioPanel(): void {
         this.audioPanelOpen = !this.audioPanelOpen;
+
+        if (this.audioPanelOpen) {
+            this.loadAudioDevices();
+        }
     }
 }

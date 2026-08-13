@@ -23,13 +23,18 @@
         </label>
 
         <div class="audio-drawer__controls">
-            <select id="audio-device" class="audio-drawer__select" [value]="audioDeviceId"
-                (change)="onAudioDeviceChange($event)">
-                <option [value]="-1">Default input</option>
-                <option *ngFor="let device of audioDevices" [value]="device.id">
-                    {{ device.name }} ({{ device.maxInputChannels }} in)
-                </option>
-            </select>
+            <div class="audio-device-list" role="listbox" aria-label="Mac audio inputs">
+                <button class="audio-device" type="button" [class.is-selected]="audioDeviceId === -1"
+                    (click)="selectAudioDevice(-1)">
+                    <span>Default input</span>
+                    <span class="audio-device__meta">Mac default</span>
+                </button>
+                <button *ngFor="let device of audioDevices" class="audio-device" type="button"
+                    [class.is-selected]="audioDeviceId === device.id" (click)="selectAudioDevice(device.id)">
+                    <span>{{ device.name }}</span>
+                    <span class="audio-device__meta">{{ device.hostAPIName }} · {{ device.maxInputChannels }} input</span>
+                </button>
+            </div>
 
             <button class="audio-drawer__button" type="button" (click)="refreshAudioDevices()">Refresh</button>
         </div>
