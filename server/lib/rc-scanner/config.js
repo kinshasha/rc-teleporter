@@ -130,10 +130,19 @@ export class Config {
 
             res.write(createWavHeader(this.audio.sampleRate));
 
-            const audioHandler = (data) => res.write(data);
+            const audioHandler = (data) => {
+                if (!res.writableEnded && !res.destroyed) {
+                    res.write(data);
+                }
+            };
 
             audio.on('data', audioHandler);
-            req.on('close', () => audio.removeListener('data', audioHandler));
+
+            const close = () => audio.removeListener('data', audioHandler);
+
+            req.on('close', close);
+            res.on('close', close);
+            res.on('error', close);
         });
 
         app.router.get('/audio/test.wav', (req, res) => {
