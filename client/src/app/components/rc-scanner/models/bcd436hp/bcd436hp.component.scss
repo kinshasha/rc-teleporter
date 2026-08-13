@@ -140,6 +140,7 @@ $led-yellow: #e6e632;
 }
 
 .display {
+  --display-font-size: #{$display-font-size};
   align-items: center;
   background-color: $dimmer-color-1;
   box-shadow: 2px 2px 4px black inset, 1px 1px 2px 1px white;
@@ -154,11 +155,12 @@ $led-yellow: #e6e632;
   padding: 8px;
   max-width: 100%;
   width: min(100%, 370px);
-  white-space: pre-wrap;
+  overflow: hidden;
+  white-space: pre;
 
   .large {
-    font-size: $display-font-size;
-    line-height: $display-font-size;
+    font-size: var(--display-font-size);
+    line-height: var(--display-font-size);
   }
 
   .line {
@@ -171,8 +173,8 @@ $led-yellow: #e6e632;
   }
 
   .small {
-    font-size: $display-font-size;
-    line-height: calc(#{$display-font-size} / 2);
+    font-size: var(--display-font-size);
+    line-height: 0.5;
     transform: scaleY(0.5);
   }
 
@@ -285,10 +287,9 @@ $led-yellow: #e6e632;
   }
 
   .display {
-    // The direct children are individual scanner LCD lines. Giving each one
-    // a phone-sized minimum height pushes the rendered status out of view.
-    height: auto;
-    min-height: 220px;
+    --display-font-size: clamp(17px, 5.5vw, 22px);
+    height: clamp(220px, calc((100vw - 48px) * 0.69), 256px);
+    min-height: 0;
   }
 }
 
