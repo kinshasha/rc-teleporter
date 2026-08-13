@@ -16,6 +16,10 @@ _v0.10.3_
 - Improvements to audio handling on the server side.
 - Node modules updated for security fixes.
 
+_v0.10.4_
+
+- Local scanner gateway release with audio input selection, backup and restore groundwork, and responsive BCD436HP display fixes.
+
 # Version 0.9
 
 - First public beta version.

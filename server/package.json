@@ -39,5 +39,5 @@
         "start": "nodemon index"
     },
     "type": "module",
-    "version": "0.10.3"
+    "version": "0.10.4"
 }
