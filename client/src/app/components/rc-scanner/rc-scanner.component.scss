@@ -79,23 +79,16 @@
   color: #fff;
   cursor: pointer;
   display: inline-flex;
-  gap: 10px;
+  height: 48px;
   justify-content: center;
-  min-width: 120px;
-  padding: 12px 16px;
+  padding: 0;
   touch-action: manipulation;
+  width: 48px;
 }
 
 .audio-drawer__toggle-icon {
-  font-size: 18px;
+  font-size: 24px;
   line-height: 1;
-}
-
-.audio-drawer__toggle-text {
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
 }
 
 .audio-drawer__panel {
@@ -196,8 +189,8 @@
   }
 
   .audio-drawer__toggle {
-    min-width: 108px;
-    padding: 11px 14px;
+    height: 46px;
+    width: 46px;
   }
 
   .audio-drawer__panel {
