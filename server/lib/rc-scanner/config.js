@@ -19,6 +19,7 @@
 
 'use strict';
 
+import { spawn } from 'child_process';
 import naudiodon from 'naudiodon2';
 
 import { unknown } from './models.js';
@@ -143,6 +144,53 @@ export class Config {
             req.on('close', close);
             res.on('close', close);
             res.on('error', close);
+        });
+
+        app.router.get('/audio.mp3', (req, res) => {
+            const audio = app.rcScanner?.audio;
+
+            if (!audio) {
+                return res.status(503).send({ error: 'Audio input is unavailable' });
+            }
+
+            const encoder = spawn('ffmpeg', [
+                '-hide_banner', '-loglevel', 'error',
+                '-f', 's16le', '-ar', String(this.audio.sampleRate), '-ac', '1', '-i', 'pipe:0',
+                '-c:a', 'libmp3lame', '-b:a', '64k', '-flush_packets', '1', '-f', 'mp3', 'pipe:1',
+            ], { stdio: ['pipe', 'pipe', 'ignore'] });
+
+            res.set({
+                'Cache-Control': 'no-store',
+                'Content-Type': 'audio/mpeg',
+                'Transfer-Encoding': 'chunked',
+            });
+
+            encoder.stdout.pipe(res);
+
+            const audioHandler = (data) => {
+                if (encoder.stdin.writable && !res.writableEnded && !res.destroyed) {
+                    encoder.stdin.write(Buffer.from(data));
+                }
+            };
+
+            audio.on('data', audioHandler);
+
+            let closed = false;
+
+            const close = () => {
+                if (closed) {
+                    return;
+                }
+
+                closed = true;
+                audio.removeListener('data', audioHandler);
+                encoder.stdin.end();
+                encoder.kill();
+            };
+
+            req.on('close', close);
+            res.on('close', close);
+            encoder.on('error', () => res.end());
         });
 
         app.router.get('/audio/test.wav', (req, res) => {

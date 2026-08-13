@@ -320,7 +320,7 @@ export class AppRcScannerService implements OnDestroy {
 
     private async openNativeAudioStream(): Promise<void> {
         if (!this.nativeAudio) {
-            this.nativeAudio = new Audio(this.getUrl('audio.wav'));
+            this.nativeAudio = new Audio(this.getUrl('audio.mp3'));
             this.nativeAudio.preload = 'none';
             this.nativeAudio.onplaying = () => this.audioStatus.emit('Playing scanner audio.');
             this.nativeAudio.onerror = () => this.audioStatus.emit('Safari could not open the scanner audio stream.');
