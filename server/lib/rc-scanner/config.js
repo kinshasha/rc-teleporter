@@ -132,7 +132,7 @@ export class Config {
 
             const audioHandler = (data) => {
                 if (!res.writableEnded && !res.destroyed) {
-                    res.write(data);
+                    res.write(Buffer.from(data));
                 }
             };
 
