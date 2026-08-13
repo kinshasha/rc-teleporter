@@ -118,6 +118,12 @@ export class AppRcScannerComponent implements OnDestroy {
             .catch(() => this.audioStatus = 'Safari blocked audio playback. Tap this button again.');
     }
 
+    playAudioTestTone(): void {
+        this.rcScannerService.playAudioTestTone()
+            .then(() => this.audioStatus = 'Test tone played through the iPhone speaker.')
+            .catch(() => this.audioStatus = 'Safari could not play the test tone.');
+    }
+
     toggleAudioPanel(): void {
         this.audioPanelOpen = !this.audioPanelOpen;
 

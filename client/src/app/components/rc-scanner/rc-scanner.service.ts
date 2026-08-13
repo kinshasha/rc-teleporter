@@ -128,6 +128,24 @@ export class AppRcScannerService implements OnDestroy {
         }
     }
 
+    async playAudioTestTone(): Promise<void> {
+        await this.enableAudioPlayback();
+
+        if (!this.audioContext) {
+            return;
+        }
+
+        const oscillator = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+
+        oscillator.frequency.value = 880;
+        gain.gain.value = 0.08;
+        oscillator.connect(gain);
+        gain.connect(this.audioContext.destination);
+        oscillator.start();
+        oscillator.stop(this.audioContext.currentTime + 0.2);
+    }
+
     ngOnDestroy(): void {
         if (this.audioContext) {
             this.audioContext.close();
