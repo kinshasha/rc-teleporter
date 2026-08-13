@@ -60,6 +60,16 @@
   border-color: #dcb379;
 }
 
+.screen-wake-video {
+  height: 1px;
+  left: 0;
+  opacity: 0.01;
+  pointer-events: none;
+  position: fixed;
+  top: 0;
+  width: 1px;
+}
+
 .audio-drawer {
   align-items: flex-end;
   display: flex;

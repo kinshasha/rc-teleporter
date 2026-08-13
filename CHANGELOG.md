@@ -20,6 +20,10 @@ _v0.10.4_
 
 - Local scanner gateway release with audio input selection, backup and restore groundwork, and responsive BCD436HP display fixes.
 
+_v0.10.5_
+
+- Add an iOS Safari inline-video screen wake fallback with an on/off control.
+
 # Version 0.9
 
 - First public beta version.

@@ -53,6 +53,8 @@ export class AppRcScannerComponent implements OnDestroy {
         release: () => Promise<void>;
     } | undefined;
 
+    private screenWakeLockVideo: HTMLVideoElement | undefined;
+
     private subscription = new Subscription();
 
     constructor(ngElementRef: ElementRef, private rcScannerService: AppRcScannerService) {
@@ -152,20 +154,27 @@ export class AppRcScannerComponent implements OnDestroy {
             wakeLock?: { request: (type: 'screen') => Promise<{ release: () => Promise<void> }> };
         };
 
-        if (!wakeLock.wakeLock) {
-            this.screenWakeLockStatus = 'unavailable';
-            return;
+        if (wakeLock.wakeLock) {
+            try {
+                this.screenWakeLock = await wakeLock.wakeLock.request('screen');
+                this.screenWakeLockActive = true;
+                this.screenWakeLockStatus = 'on';
+                this.screenWakeLock.addEventListener?.('release', () => {
+                    this.screenWakeLock = undefined;
+                    this.screenWakeLockActive = false;
+                    this.screenWakeLockStatus = 'off';
+                });
+                return;
+
+            } catch (error) {
+                console.warn('Native screen wake lock unavailable; using media fallback.', error);
+            }
         }
 
         try {
-            this.screenWakeLock = await wakeLock.wakeLock.request('screen');
+            await this.enableVideoScreenWakeLock();
             this.screenWakeLockActive = true;
             this.screenWakeLockStatus = 'on';
-            this.screenWakeLock.addEventListener?.('release', () => {
-                this.screenWakeLock = undefined;
-                this.screenWakeLockActive = false;
-                this.screenWakeLockStatus = 'off';
-            });
 
         } catch (error) {
             console.warn('Unable to keep the screen awake.', error);
@@ -174,12 +183,48 @@ export class AppRcScannerComponent implements OnDestroy {
     }
 
     private async releaseScreenWakeLock(): Promise<void> {
-        if (this.screenWakeLock) {
-            await this.screenWakeLock.release();
-            this.screenWakeLock = undefined;
+        const wakeLock = this.screenWakeLock;
+        this.screenWakeLock = undefined;
+
+        if (wakeLock) {
+            await wakeLock.release();
+        }
+
+        if (this.screenWakeLockVideo) {
+            this.screenWakeLockVideo.pause();
+            this.screenWakeLockVideo.removeAttribute('src');
+            this.screenWakeLockVideo.load();
+            this.screenWakeLockVideo.remove();
+            this.screenWakeLockVideo = undefined;
         }
 
         this.screenWakeLockActive = false;
         this.screenWakeLockStatus = 'off';
+    }
+
+    private async enableVideoScreenWakeLock(): Promise<void> {
+        const video = document.createElement('video');
+
+        video.autoplay = true;
+        video.loop = true;
+        video.muted = true;
+        video.playsInline = true;
+        video.preload = 'auto';
+        video.src = 'assets/screen-wake.mp4';
+        video.className = 'screen-wake-video';
+        video.setAttribute('playsinline', '');
+        video.setAttribute('webkit-playsinline', '');
+        document.body.appendChild(video);
+        this.screenWakeLockVideo = video;
+
+        try {
+            // Calling play directly from the toggle tap keeps this eligible for iOS playback.
+            await video.play();
+
+        } catch (error) {
+            video.remove();
+            this.screenWakeLockVideo = undefined;
+            throw error;
+        }
     }
 }
