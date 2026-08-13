@@ -98,21 +98,16 @@ export class AppRcScannerService implements OnDestroy {
     }
 
     async enableAudioPlayback(): Promise<void> {
-        if (!this.audioContext) {
-            this.audioContext = new (window.AudioContext || window.webkitAudioContext)({
-                latencyHint: 'balanced',
-                sampleRate: this.scannerConfig?.sampleRate,
-            });
-        }
+        const audioContext = this.getAudioContext();
 
         // iOS needs an actual source to start during the user gesture, not just resume().
-        const unlockBuffer = this.audioContext.createBuffer(1, 1, this.audioContext.sampleRate);
-        const unlockSource = this.audioContext.createBufferSource();
+        const unlockBuffer = audioContext.createBuffer(1, 1, audioContext.sampleRate);
+        const unlockSource = audioContext.createBufferSource();
         unlockSource.buffer = unlockBuffer;
-        unlockSource.connect(this.audioContext.destination);
+        unlockSource.connect(audioContext.destination);
         unlockSource.start();
 
-        await this.audioContext.resume();
+        await audioContext.resume();
 
         if (!this.isPowerOn) {
             this.isPowerOn = true;
@@ -129,21 +124,18 @@ export class AppRcScannerService implements OnDestroy {
     }
 
     async playAudioTestTone(): Promise<void> {
-        await this.enableAudioPlayback();
-
-        if (!this.audioContext) {
-            return;
-        }
-
-        const oscillator = this.audioContext.createOscillator();
-        const gain = this.audioContext.createGain();
+        const audioContext = this.getAudioContext();
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
 
         oscillator.frequency.value = 880;
         gain.gain.value = 0.08;
         oscillator.connect(gain);
-        gain.connect(this.audioContext.destination);
+        gain.connect(audioContext.destination);
         oscillator.start();
-        oscillator.stop(this.audioContext.currentTime + 0.2);
+        oscillator.stop(audioContext.currentTime + 0.2);
+
+        await this.enableAudioPlayback();
     }
 
     ngOnDestroy(): void {
@@ -409,6 +401,17 @@ export class AppRcScannerService implements OnDestroy {
             reader.onload = () => resolve(reader.result instanceof ArrayBuffer ? reader.result : null);
             reader.readAsArrayBuffer(data);
         });
+    }
+
+    private getAudioContext(): AudioContext {
+        if (!this.audioContext) {
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)({
+                latencyHint: 'balanced',
+                sampleRate: this.scannerConfig?.sampleRate,
+            });
+        }
+
+        return this.audioContext;
     }
 
     private openControlWebSocket(): void {
