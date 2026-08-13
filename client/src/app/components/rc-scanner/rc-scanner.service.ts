@@ -355,12 +355,8 @@ export class AppRcScannerService implements OnDestroy {
 
         const turn = await this.httpClient.get<{ iceServers: RTCIceServer[] }>(this.getUrl('audio/webrtc/ice')).toPromise();
 
-        if (!turn?.iceServers?.length) {
-            throw new Error('Cloudflare TURN is not configured.');
-        }
-
         this.webRtcPeer?.close();
-        this.webRtcPeer = new RTCPeerConnection({ iceServers: turn.iceServers });
+        this.webRtcPeer = new RTCPeerConnection({ iceServers: turn?.iceServers || [] });
         this.webRtcPeer.addTransceiver('audio', { direction: 'recvonly' });
         this.audioStatus.emit('Connecting low-latency WebRTC audio...');
 

@@ -15,3 +15,5 @@ npm start
 The gateway exchanges the long-lived TURN key for one-hour ICE credentials. It never sends the TURN API token to a browser.
 
 Protect the published scanner hostname with Cloudflare Access before enabling this endpoint. The browser receives short-lived relay credentials, so the Access policy is the control that prevents unauthorised relay use.
+
+Without these variables, WebRTC uses direct LAN candidates. This keeps low-latency audio working locally while using the MP3 fallback for remote clients that cannot establish a direct peer connection.

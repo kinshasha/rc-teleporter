@@ -198,10 +198,6 @@ export class Config {
             try {
                 const iceServers = await getTurnIceServers();
 
-                if (iceServers.length === 0) {
-                    return res.status(503).send({ error: 'Cloudflare TURN is not configured' });
-                }
-
                 res.setHeader('Cache-Control', 'no-store');
                 return res.send({ iceServers });
 
@@ -224,10 +220,6 @@ export class Config {
                 iceServers = await getTurnIceServers();
             } catch (error) {
                 return res.status(502).send({ error: error.message || 'Unable to obtain TURN credentials' });
-            }
-
-            if (iceServers.length === 0) {
-                return res.status(503).send({ error: 'Cloudflare TURN is not configured' });
             }
 
             const peer = new wrtc.RTCPeerConnection({ iceServers });
