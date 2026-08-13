@@ -24,6 +24,7 @@ import {
     AppRcScannerConfig,
     AppRcScannerService,
 } from './rc-scanner.service';
+import { APP_VERSION } from '../../version';
 
 @Component({
     selector: 'rc-scanner',
@@ -31,6 +32,8 @@ import {
     templateUrl: './rc-scanner.component.html',
 })
 export class AppRcScannerComponent implements OnDestroy {
+    readonly appVersion = APP_VERSION;
+
     audioDevices: AppRcScannerAudioDevice[] = [];
 
     audioDeviceId = -1;

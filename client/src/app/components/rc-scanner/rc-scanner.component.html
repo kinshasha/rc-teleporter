@@ -6,6 +6,10 @@
     </ng-container>
 </div>
 
+<div class="app-version" aria-label="RC Scanner application version">
+    RC Scanner v{{ appVersion }}
+</div>
+
 <div class="audio-drawer" [class.is-open]="audioPanelOpen">
     <button class="audio-drawer__toggle" type="button" (click)="toggleAudioPanel()">
         <span class="audio-drawer__toggle-icon">{{ audioPanelOpen ? '×' : '♪' }}</span>

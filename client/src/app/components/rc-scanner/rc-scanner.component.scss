@@ -20,6 +20,17 @@
   width: 100%;
 }
 
+.app-version {
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  color: rgba(255, 255, 255, 0.52);
+  font-size: 11px;
+  left: calc(12px + env(safe-area-inset-left));
+  letter-spacing: 0.06em;
+  position: fixed;
+  text-transform: uppercase;
+  z-index: 20;
+}
+
 .audio-drawer {
   bottom: calc(12px + env(safe-area-inset-bottom));
   display: grid;
@@ -148,6 +159,13 @@
 
   .audio-drawer__select,
   .audio-drawer__button {
+    flex: 0 0 auto;
+    min-height: 48px;
     width: 100%;
+  }
+
+  .app-version {
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    left: calc(10px + env(safe-area-inset-left));
   }
 }

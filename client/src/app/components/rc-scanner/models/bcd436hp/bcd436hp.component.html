@@ -5,6 +5,7 @@
             <span class="large">Press Power</span>
         </div>
         <div *ngIf="powerOn" class="display">
+            <div *ngIf="display.length === 0" class="large">Waiting for scanner</div>
             <div *ngFor="let line of display; index as i" [ngClass]="{ large: line.size === 1, small: line.size === 0}">
                 <span *ngFor="let char of line.text; index as j"
                     [ngClass]="{ reverse: line.mode[j] === '*', underline: line.mode[j] === '_' }">{{ char }}</span>
