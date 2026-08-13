@@ -21,6 +21,7 @@
 
 import { spawn } from 'child_process';
 import naudiodon from 'naudiodon2';
+import wrtc from '@roamhq/wrtc';
 
 import { unknown } from './models.js';
 
@@ -193,6 +194,57 @@ export class Config {
             encoder.on('error', () => res.end());
         });
 
+        app.router.post('/audio/webrtc/offer', async (req, res) => {
+            const audio = app.rcScanner?.audio;
+            const offer = req.body?.sdp;
+
+            if (!audio || typeof offer !== 'string' || offer.length === 0) {
+                return res.status(400).send({ error: 'A WebRTC offer and audio input are required' });
+            }
+
+            const peer = new wrtc.RTCPeerConnection({ iceServers: [] });
+            const source = new wrtc.nonstandard.RTCAudioSource();
+            const track = source.createTrack();
+            let closed = false;
+
+            peer.addTrack(track);
+
+            const audioHandler = createWebRtcAudioHandler(source, this.audio.sampleRate);
+
+            audio.on('data', audioHandler);
+
+            const close = () => {
+                if (closed) {
+                    return;
+                }
+
+                closed = true;
+                audio.removeListener('data', audioHandler);
+                track.stop();
+                peer.close();
+            };
+
+            peer.onconnectionstatechange = () => {
+                if (['closed', 'failed', 'disconnected'].includes(peer.connectionState)) {
+                    close();
+                }
+            };
+
+            try {
+                await peer.setRemoteDescription(new wrtc.RTCSessionDescription({ type: 'offer', sdp: offer }));
+                const answer = await peer.createAnswer();
+
+                await peer.setLocalDescription(answer);
+                await waitForIceGathering(peer);
+
+                return res.send({ sdp: peer.localDescription?.sdp, type: peer.localDescription?.type });
+
+            } catch (error) {
+                close();
+                return res.status(500).send({ error: error.message || 'Unable to establish WebRTC audio' });
+            }
+        });
+
         app.router.get('/audio/test.wav', (req, res) => {
             const sampleRate = 44100;
             const samples = Math.round(sampleRate * 0.25);
@@ -249,6 +301,61 @@ export class Config {
             return res.send({ deviceId });
         });
     }
+}
+
+function createWebRtcAudioHandler(source, inputSampleRate) {
+    const outputSampleRate = 48000;
+    let pending = new Int16Array(0);
+
+    return (data) => {
+        const input = new Int16Array(data);
+        const outputLength = Math.floor((input.length * outputSampleRate) / inputSampleRate);
+        const resampled = new Int16Array(outputLength);
+
+        for (let i = 0; i < outputLength; i++) {
+            resampled[i] = input[Math.min(input.length - 1, Math.floor((i * inputSampleRate) / outputSampleRate))];
+        }
+
+        const combined = new Int16Array(pending.length + resampled.length);
+
+        combined.set(pending);
+        combined.set(resampled, pending.length);
+
+        let offset = 0;
+
+        while (combined.length - offset >= 480) {
+            const samples = combined.slice(offset, offset + 480);
+
+            source.onData({
+                bitsPerSample: 16,
+                channelCount: 1,
+                numberOfFrames: 480,
+                sampleRate: outputSampleRate,
+                samples,
+            });
+
+            offset += 480;
+        }
+
+        pending = combined.slice(offset);
+    };
+}
+
+function waitForIceGathering(peer) {
+    if (peer.iceGatheringState === 'complete') {
+        return Promise.resolve();
+    }
+
+    return new Promise((resolve) => {
+        const timeout = setTimeout(resolve, 1000);
+
+        peer.onicegatheringstatechange = () => {
+            if (peer.iceGatheringState === 'complete') {
+                clearTimeout(timeout);
+                resolve();
+            }
+        };
+    });
 }
 
 function createWavHeader(sampleRate, dataLength = 0xffffffff) {

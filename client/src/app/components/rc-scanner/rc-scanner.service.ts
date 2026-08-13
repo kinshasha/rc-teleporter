@@ -77,6 +77,10 @@ export class AppRcScannerService implements OnDestroy {
 
     private nativeAudio: HTMLAudioElement | undefined;
 
+    private webRtcAudio: HTMLAudioElement | undefined;
+
+    private webRtcPeer: RTCPeerConnection | undefined;
+
     private testToneAudio: HTMLAudioElement | undefined;
 
     private scannerConfig: AppRcScannerConfig | undefined;
@@ -102,7 +106,14 @@ export class AppRcScannerService implements OnDestroy {
     }
 
     async enableAudioPlayback(): Promise<void> {
-        await this.openNativeAudioStream();
+        try {
+            await this.openWebRtcAudioStream();
+
+        } catch (error) {
+            console.warn('WebRTC audio unavailable, using MP3 fallback.', error);
+            this.audioStatus.emit('WebRTC unavailable. Using buffered MP3 audio.');
+            await this.openNativeAudioStream();
+        }
 
         if (!this.isPowerOn) {
             this.isPowerOn = true;
@@ -133,6 +144,8 @@ export class AppRcScannerService implements OnDestroy {
         }
 
         this.nativeAudio?.pause();
+        this.webRtcAudio?.pause();
+        this.webRtcPeer?.close();
         this.testToneAudio?.pause();
 
         if (this.wsControl instanceof WebSocket) {
@@ -329,6 +342,48 @@ export class AppRcScannerService implements OnDestroy {
         }
 
         await this.nativeAudio.play();
+    }
+
+    private async openWebRtcAudioStream(): Promise<void> {
+        if (this.webRtcPeer?.connectionState === 'connected') {
+            return;
+        }
+
+        if (!('RTCPeerConnection' in window)) {
+            throw new Error('WebRTC is not available in this browser.');
+        }
+
+        this.webRtcPeer?.close();
+        this.webRtcPeer = new RTCPeerConnection({ iceServers: [] });
+        this.webRtcPeer.addTransceiver('audio', { direction: 'recvonly' });
+        this.audioStatus.emit('Connecting low-latency WebRTC audio...');
+
+        this.webRtcPeer.ontrack = (event) => {
+            if (!this.webRtcAudio) {
+                this.webRtcAudio = new Audio();
+                this.webRtcAudio.autoplay = true;
+                this.webRtcAudio.setAttribute('playsinline', '');
+                this.webRtcAudio.onplaying = () => this.audioStatus.emit('Playing low-latency scanner audio.');
+            }
+
+            this.webRtcAudio.srcObject = event.streams[0] || new MediaStream([event.track]);
+            void this.webRtcAudio.play().catch(() => this.audioStatus.emit('Tap Enable iPhone playback again to start WebRTC audio.'));
+        };
+
+        const offer = await this.webRtcPeer.createOffer();
+
+        await this.webRtcPeer.setLocalDescription(offer);
+
+        const answer = await this.httpClient.post<{ sdp: string; type: RTCSdpType }>(
+            this.getUrl('audio/webrtc/offer'),
+            { sdp: offer.sdp },
+        ).toPromise();
+
+        if (!answer?.sdp || !answer.type) {
+            throw new Error('Gateway returned an invalid WebRTC answer.');
+        }
+
+        await this.webRtcPeer.setRemoteDescription(answer);
     }
 
     private async playAudioFrame(data: unknown): Promise<void> {
