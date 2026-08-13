@@ -109,6 +109,15 @@ export class App extends EventEmitter {
         this.router.use(express.json());
         this.router.use(express.urlencoded({ extended: false }));
         this.router.use(helmet({ contentSecurityPolicy: false }));
+        this.router.use((req, res, next) => {
+            if (req.path === '/' || req.path === '/index.html') {
+                res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+                res.setHeader('Pragma', 'no-cache');
+                res.setHeader('Expires', '0');
+            }
+
+            next();
+        });
         this.router.use(express.static(staticDir));
         this.router.use((req, res, next) => {
             if (['/', '/index.html'].includes(req.path)) {

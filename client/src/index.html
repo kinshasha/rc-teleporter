@@ -6,14 +6,116 @@
     <link rel="apple-touch-icon" sizes="192x192" href="assets/icons/icon-192x192.png">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="manifest" href="manifest.webmanifest">
-    <link rel="stylesheet" href="///fonts.googleapis.com/css?family=Roboto:400,500">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:400,500">
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
     <title>RC Scanner</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="translucent">
+    <meta name="apple-mobile-web-app-title" content="RC Scanner">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-capable" content="yes">
+    <meta name="format-detection" content="telephone=no, email=no, address=no">
     <meta name="theme-color" content="#1e1e1e">
+    <style>
+        html,
+        body {
+            margin: 0;
+            min-height: 100%;
+            background: #1e1e1e;
+        }
+
+        #rc-boot {
+            align-items: center;
+            background: #1e1e1e;
+            box-sizing: border-box;
+            color: #f3f3f3;
+            display: flex;
+            font-family: Roboto, 'Helvetica Neue', sans-serif;
+            inset: 0;
+            justify-content: center;
+            left: 0;
+            padding: 24px;
+            position: fixed;
+            text-align: center;
+            top: 0;
+            z-index: 9999;
+        }
+
+        #rc-boot[data-state="ready"] {
+            display: none;
+        }
+
+        #rc-boot__card {
+            max-width: 24rem;
+        }
+
+        #rc-boot__title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+        }
+
+        #rc-boot__body {
+            color: rgba(255, 255, 255, 0.72);
+            line-height: 1.5;
+        }
+    </style>
+    <script>
+        (function () {
+            var boot = document.createElement('div');
+            boot.id = 'rc-boot';
+            boot.innerHTML = '<div id="rc-boot__card"><div id="rc-boot__title">Loading RC Scanner</div><div id="rc-boot__body">If this stays visible, Safari did not finish booting the app.</div></div>';
+            document.documentElement.appendChild(boot);
+
+            var showError = function (message) {
+                var body = document.getElementById('rc-boot__body');
+                if (body) {
+                    body.textContent = message || 'Safari reported a startup error.';
+                }
+            };
+
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(function (registrations) {
+                    return Promise.all(registrations.map(function (registration) {
+                        return registration.unregister();
+                    }));
+                }).catch(function () {
+                    showError('Safari could not clear an old service worker.');
+                });
+            }
+
+            if ('caches' in window) {
+                caches.keys().then(function (keys) {
+                    return Promise.all(keys.map(function (key) {
+                        return caches.delete(key);
+                    }));
+                }).catch(function () {
+                    showError('Safari could not clear a cached app shell.');
+                });
+            }
+
+            window.addEventListener('error', function (event) {
+                var message = event && event.error && event.error.message ? event.error.message : 'A startup error blocked the app.';
+                showError(message);
+            });
+
+            window.addEventListener('unhandledrejection', function (event) {
+                var reason = event && event.reason ? event.reason : 'A startup error blocked the app.';
+                showError(typeof reason === 'string' ? reason : 'A startup error blocked the app.');
+            });
+
+            window.__rcScannerBoot = {
+                ready: function () {
+                    boot.setAttribute('data-state', 'ready');
+                },
+                fail: function (message) {
+                    showError(message);
+                }
+            };
+        }());
+    </script>
 </head>
 
 <body>

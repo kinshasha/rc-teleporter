@@ -20,7 +20,8 @@
 'use strict';
 
 import EventEmitter from 'events';
-import naudiodon from 'naudiodon';
+import naudiodon from 'naudiodon2';
+import { SerialPort } from 'serialport';
 
 import { Audio } from './audio.js';
 import { Com } from './com.js';
@@ -44,6 +45,13 @@ export class RcScanner extends EventEmitter {
 
         } else if (process.argv[2] === 'list-audio') {
             console.log(naudiodon.getDevices());
+
+            return;
+
+        } else if (process.argv[2] === 'list-ports') {
+            SerialPort.list()
+                .then((ports) => console.log(ports))
+                .catch((error) => console.error(error.message));
 
             return;
 

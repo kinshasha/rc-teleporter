@@ -20,7 +20,8 @@
 'use strict';
 
 import EventEmitter from 'events';
-import SerialPort from 'serialport';
+import { ReadlineParser } from '@serialport/parser-readline';
+import { SerialPort } from 'serialport';
 
 export class Com extends EventEmitter {
     constructor(ctx) {
@@ -28,7 +29,7 @@ export class Com extends EventEmitter {
 
         this.config = ctx.config.com;
 
-        this.readLine = new SerialPort.parsers.Readline({ delimiter: '\r', encoding: 'binary' });
+        this.readLine = new ReadlineParser({ delimiter: '\r', encoding: 'binary' });
 
         this.open();
     }
@@ -43,14 +44,57 @@ export class Com extends EventEmitter {
         }
     }
 
-    open() {
+    async resolvePort() {
+        const configuredPort = this.config.port;
+
+        if (typeof configuredPort === 'string' && configuredPort.length > 0 && configuredPort.toLowerCase() !== 'auto') {
+            return configuredPort;
+        }
+
+        try {
+            const ports = await SerialPort.list();
+            const matchers = [/usbserial/i, /usbmodem/i, /ttyacm/i, /ttyusb/i, /^com\d+$/i];
+
+            const matchedPort = ports.find((port) => {
+                const candidates = [port.path, port.manufacturer, port.serialNumber, port.vendorId, port.productId].filter(Boolean);
+                return candidates.some((candidate) => matchers.some((matcher) => matcher.test(String(candidate))));
+            });
+
+            if (matchedPort?.path) {
+                return matchedPort.path;
+            }
+
+            const fallbackPort = ports.find((port) => !/bluetooth|debug-console/i.test(port.path));
+
+            if (fallbackPort?.path) {
+                return fallbackPort.path;
+            }
+        } catch (error) {
+            this.emit('status', `Unable to enumerate serial ports: ${error.message}`);
+        }
+
+        return '';
+    }
+
+    async open() {
         let opening = true;
 
         if (this.serialPort instanceof SerialPort) {
             this.close();
         }
 
-        this.serialPort = new SerialPort(this.config.port, {
+        const portPath = await this.resolvePort();
+
+        if (!portPath) {
+            this.emit('status', 'No serial port found.');
+            setTimeout(() => this.open(), this.config.reconnectInterval);
+            return;
+        }
+
+        this.portPath = portPath;
+
+        this.serialPort = new SerialPort({
+            path: portPath,
             baudRate: this.config.baudRate,
             dataBits: this.config.dataBits,
             parity: this.config.parity,
@@ -65,9 +109,9 @@ export class Com extends EventEmitter {
 
             this.serialPort.removeAllListeners();
 
-            this.emit('status', `Disconnected from ${this.config.port}`);
+            this.emit('status', `Disconnected from ${this.portPath || this.config.port}`);
 
-            if (err.disconnected) {
+            if (err?.disconnected) {
                 setTimeout(() => this.open(), this.config.reconnectInterval);
             }
         });
@@ -85,7 +129,7 @@ export class Com extends EventEmitter {
         });
 
         this.serialPort.on('open', () => {
-            this.emit('status', `Connected to ${this.config.port}`);
+            this.emit('status', `Connected to ${portPath}`);
 
             opening = false;
         });

@@ -30,9 +30,18 @@ declare global {
 }
 
 export interface AppRcScannerConfig {
+    audioDeviceId: number;
     model: string;
     reconnectInterval: number;
     sampleRate: number;
+}
+
+export interface AppRcScannerAudioDevice {
+    defaultSampleRate: number;
+    hostAPIName: string;
+    id: number;
+    maxInputChannels: number;
+    name: string;
 }
 
 export interface AppRcScannerMessage {
@@ -153,7 +162,7 @@ export class AppRcScannerService implements OnDestroy {
     }
 
     private bootstrapAudio(): void {
-        const events = ['keydown', 'mousedown', 'touchstart'];
+        const events = ['keydown', 'mousedown', 'pointerdown', 'touchstart'];
 
         const bootstrap = async () => {
             if (!this.audioContext) {
@@ -232,6 +241,14 @@ export class AppRcScannerService implements OnDestroy {
 
             this.config.emit(config);
         });
+    }
+
+    getAudioDevices() {
+        return this.httpClient.get<AppRcScannerAudioDevice[]>(this.getUrl('audio/devices'));
+    }
+
+    setAudioDevice(deviceId: number) {
+        return this.httpClient.post<{ deviceId: number }>(this.getUrl('audio/device'), { deviceId });
     }
 
     private getUrl(path: string, options: { ws?: boolean } = {}): string {

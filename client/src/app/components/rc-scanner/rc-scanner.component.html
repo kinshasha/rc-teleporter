@@ -1,5 +1,35 @@
-<ng-container *ngIf="model" [ngSwitch]="model">
-    <rc-scanner-bcd386t *ngSwitchCase="'bcd386t'"></rc-scanner-bcd386t>
-    <rc-scanner-bcd436hp *ngSwitchCase="'bcd436hp'"></rc-scanner-bcd436hp>
-    <rc-scanner-unknown *ngSwitchDefault></rc-scanner-unknown>
-</ng-container>
+<div class="scanner-shell">
+    <ng-container [ngSwitch]="model">
+        <rc-scanner-bcd386t *ngSwitchCase="'bcd386t'"></rc-scanner-bcd386t>
+        <rc-scanner-bcd436hp *ngSwitchCase="'bcd436hp'"></rc-scanner-bcd436hp>
+        <rc-scanner-unknown *ngSwitchDefault></rc-scanner-unknown>
+    </ng-container>
+</div>
+
+<div class="audio-drawer" [class.is-open]="audioPanelOpen">
+    <button class="audio-drawer__toggle" type="button" (click)="toggleAudioPanel()">
+        <span class="audio-drawer__toggle-icon">{{ audioPanelOpen ? '×' : '♪' }}</span>
+        <span class="audio-drawer__toggle-text">Mac input</span>
+    </button>
+
+    <div class="audio-drawer__panel" *ngIf="audioPanelOpen">
+        <label class="audio-drawer__label" for="audio-device">
+            <span class="audio-drawer__title">Mac input</span>
+            <span class="audio-drawer__subtitle">Pick the interface that feeds scanner audio</span>
+        </label>
+
+        <div class="audio-drawer__controls">
+            <select id="audio-device" class="audio-drawer__select" [value]="audioDeviceId"
+                (change)="onAudioDeviceChange($event)">
+                <option [value]="-1">Default input</option>
+                <option *ngFor="let device of audioDevices" [value]="device.id">
+                    {{ device.name }} ({{ device.maxInputChannels }} in)
+                </option>
+            </select>
+
+            <button class="audio-drawer__button" type="button" (click)="refreshAudioDevices()">Refresh</button>
+        </div>
+
+        <div class="audio-drawer__status">{{ audioStatus }}</div>
+    </div>
+</div>

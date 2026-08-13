@@ -20,7 +20,9 @@ Other scanner models can be added on request as long as I can get one. Any lease
 
 ## Supported platforms
 
-Since *RC Scanner* uses libraries [Node SerialPort](https://serialport.io/) and [Naudiodon](https://github.com/Streampunk/naudiodon), which are both multiplatform, there should'nt be to much trouble running it on other platforms. If you do try *RC Scanner*, please share you experience on [Gitter](https://gitter.im/rc-scanner/Lobby?utm_source=share-link&utm_medium=link&utm_campaign=share-link)
+Since *RC Scanner* uses libraries [Node SerialPort](https://serialport.io/) and [Naudiodon2](https://github.com/csukuangfj/naudiodon2), which are both multiplatform, there should'nt be to much trouble running it on other platforms. If you do try *RC Scanner*, please share you experience on [Gitter](https://gitter.im/rc-scanner/Lobby?utm_source=share-link&utm_medium=link&utm_campaign=share-link)
+
+On macOS, USB-connected scanners usually show up as `/dev/cu.usbserial*` or `/dev/cu.usbmodem*` devices. Leave `com.port` set to `auto` in `server/config.json`, or set `RC_COM_PORT=auto`, and RC Scanner will pick the first matching serial device it finds.
 
 ## Features
 
@@ -74,4 +76,3 @@ A default configuration file `rc-scanner/server/.env` will be created.
 At this point, you should review the configuration file to ensure that it is conform to your setup.
 
 When done, re-run again `node run.js` to launch the application.
-

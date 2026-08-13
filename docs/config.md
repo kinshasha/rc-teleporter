@@ -32,11 +32,12 @@
     "audio": {
       // Which audio device to use. -1 is for default device
       // You can get a list of your audio device with the
-      // following command: 'npm server list-audio'
+      // following command: 'npm run list-audio'
+      // You can also choose the input from the web UI.
       "deviceId": -1,
 
       // Reconnect after this amount of milliseconds to the audio
-      // device if the naudiodon library has crashed.
+      // device if the naudiodon2 library has crashed.
       "reconnectInterval": 2000,
 
       // The sampling rate that match your audio device
@@ -69,8 +70,10 @@
       "pollingInterval": 250,
 
       // The system path of the serial port you want to open.
-      // For example, /dev/ttyXXX0 on Mac/Linux, or COM1 on Windows.
-      "port": "/dev/ttyUSB0",
+      // On macOS, leaving this as "auto" will pick the first USB serial
+      // device it finds, such as /dev/cu.usbserial* or /dev/cu.usbmodem*.
+      // Use 'npm run list-ports' to inspect the available devices.
+      "port": "auto",
 
       // Retry to connect to serial port after this amount of
       // milliseconds.

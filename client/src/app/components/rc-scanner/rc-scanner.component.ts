@@ -19,7 +19,11 @@
 
 import { Component, ElementRef, HostListener, OnDestroy } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { AppRcScannerConfig, AppRcScannerService } from './rc-scanner.service';
+import {
+    AppRcScannerAudioDevice,
+    AppRcScannerConfig,
+    AppRcScannerService,
+} from './rc-scanner.service';
 
 @Component({
     selector: 'rc-scanner',
@@ -27,14 +31,27 @@ import { AppRcScannerConfig, AppRcScannerService } from './rc-scanner.service';
     templateUrl: './rc-scanner.component.html',
 })
 export class AppRcScannerComponent implements OnDestroy {
-    model: string | undefined;
+    audioDevices: AppRcScannerAudioDevice[] = [];
 
-    private subscription: Subscription;
+    audioDeviceId = -1;
+
+    audioStatus = 'Loading audio inputs...';
+
+    audioPanelOpen = false;
+
+    model: string = 'unknown';
+
+    private subscription = new Subscription();
 
     constructor(ngElementRef: ElementRef, private rcScannerService: AppRcScannerService) {
-        this.subscription = this.rcScannerService.config.subscribe((config: AppRcScannerConfig) => this.model = config.model);
+        this.subscription.add(this.rcScannerService.config.subscribe((config: AppRcScannerConfig) => {
+            this.model = config.model || 'unknown';
+            this.audioDeviceId = typeof config.audioDeviceId === 'number' ? config.audioDeviceId : -1;
+        }));
 
         rcScannerService.rootElement = ngElementRef.nativeElement;
+
+        this.loadAudioDevices();
     }
 
     @HostListener('window:beforeunload', ['$event'])
@@ -46,5 +63,54 @@ export class AppRcScannerComponent implements OnDestroy {
 
     ngOnDestroy(): void {
         this.subscription.unsubscribe();
+    }
+
+    loadAudioDevices(): void {
+        this.audioStatus = 'Loading audio inputs...';
+
+        this.subscription.add(this.rcScannerService.getAudioDevices().subscribe({
+            next: (devices) => {
+                this.audioDevices = devices;
+
+                if (devices.length > 0) {
+                    this.audioStatus = 'Select the Mac input that carries scanner audio.';
+
+                } else {
+                    this.audioStatus = 'No Mac input devices were found.';
+                }
+            },
+            error: () => {
+                this.audioStatus = 'Unable to load Mac audio inputs.';
+            },
+        }));
+    }
+
+    onAudioDeviceChange(event: Event): void {
+        const target = event.target as HTMLSelectElement | null;
+        const nextDeviceId = target ? Number.parseInt(target.value, 10) : NaN;
+
+        if (!Number.isInteger(nextDeviceId)) {
+            return;
+        }
+
+        this.audioDeviceId = nextDeviceId;
+        this.audioStatus = 'Saving audio input...';
+
+        this.subscription.add(this.rcScannerService.setAudioDevice(nextDeviceId).subscribe({
+            next: () => {
+                this.audioStatus = 'Audio input saved.';
+            },
+            error: () => {
+                this.audioStatus = 'Unable to save audio input.';
+            },
+        }));
+    }
+
+    refreshAudioDevices(): void {
+        this.loadAudioDevices();
+    }
+
+    toggleAudioPanel(): void {
+        this.audioPanelOpen = !this.audioPanelOpen;
     }
 }

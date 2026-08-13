@@ -19,6 +19,8 @@
 
 'use strict';
 
+import naudiodon from 'naudiodon2';
+
 import { unknown } from './models.js';
 
 export class Config {
@@ -55,7 +57,13 @@ export class Config {
                 : parseInt(process.env.RC_COM_POLLING_INTERVAL, 10) || 500,
             port: typeof config?.com?.port === 'string'
                 ? config.com.port
-                : process.env.RC_COM_PARITY || process.platform === 'win32' ? 'com1' : '/dev/ttyACM0',
+                : process.env.RC_COM_PORT || (
+                    process.platform === 'darwin'
+                        ? 'auto'
+                        : process.platform === 'win32'
+                            ? 'com1'
+                            : '/dev/ttyACM0'
+                ),
             reconnectInterval: typeof config?.com?.reconnectInterval === 'number'
                 ? config.com.reconnectInterval
                 : parseInt(process.env.RC_RECONNECT_INTERVAL, 10) || 5000,
@@ -86,10 +94,52 @@ export class Config {
 
         app.router.get('/config', (req, res) => {
             res.send({
+                audioDeviceId: this.audio.deviceId,
                 model: this.model,
                 reconnectInterval: this.webSocket.reconnectInterval,
                 sampleRate: this.audio.sampleRate,
             });
+        });
+
+        app.router.get('/audio/devices', (req, res) => {
+            const devices = naudiodon.getDevices()
+                .filter((device) => Number(device.maxInputChannels) > 0)
+                .map((device) => ({
+                    defaultSampleRate: device.defaultSampleRate,
+                    hostAPIName: device.hostAPIName,
+                    id: device.id,
+                    maxInputChannels: device.maxInputChannels,
+                    name: device.name,
+                }));
+
+            res.send(devices);
+        });
+
+        app.router.post('/audio/device', (req, res) => {
+            const deviceId = Number.parseInt(req.body?.deviceId, 10);
+            const devices = naudiodon.getDevices().filter((device) => Number(device.maxInputChannels) > 0);
+
+            if (!Number.isInteger(deviceId)) {
+                return res.status(400).send({ error: 'Invalid deviceId' });
+            }
+
+            if (deviceId !== -1 && !devices.some((device) => device.id === deviceId)) {
+                return res.status(400).send({ error: 'Unknown audio device' });
+            }
+
+            if (this.audio.deviceId === deviceId) {
+                return res.send({ deviceId });
+            }
+
+            this.audio.deviceId = deviceId;
+
+            if (app.rcScanner?.audio?.setDeviceId instanceof Function) {
+                app.rcScanner.audio.setDeviceId(deviceId);
+            }
+
+            app.saveConfig();
+
+            return res.send({ deviceId });
         });
     }
 }

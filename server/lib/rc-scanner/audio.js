@@ -20,7 +20,7 @@
 'use strict';
 
 import EventEmitter from 'events';
-import portAudio from 'naudiodon';
+import portAudio from 'naudiodon2';
 
 export class Audio extends EventEmitter {
     constructor(ctx) {
@@ -28,10 +28,16 @@ export class Audio extends EventEmitter {
 
         this.config = ctx.config.audio;
 
+        this.retryTimer = null;
+
         this.start();
     }
 
     start() {
+        if (this.stream) {
+            return;
+        }
+
         const newStream = () => {
             let stream;
 
@@ -62,9 +68,16 @@ export class Audio extends EventEmitter {
                 stream.on('error', () => {
                     this.emit('status', 'Audio stream error, restarting...');
 
-                    this._stream.abort(() => {
-                        setTimeout(() => this._stream = newStream(), this.config.reconnectInterval);
-                    });
+                    if (stream && typeof stream.abort === 'function') {
+                        stream.abort(() => {
+                            this.stream = undefined;
+                            this.scheduleRetry(newStream);
+                        });
+
+                    } else {
+                        this.stream = undefined;
+                        this.scheduleRetry(newStream);
+                    }
                 });
 
                 stream.start();
@@ -79,19 +92,50 @@ export class Audio extends EventEmitter {
         this.stream = newStream();
 
         if (!this.stream) {
-            const interval = setInterval(() => {
-                this.stream = newStream();
-
-                if (this.stream) {
-                    clearInterval(interval);
-                }
-            }, this.config.reconnectInterval);
+            this.scheduleRetry(newStream);
         }
     }
 
     stop() {
+        if (this.retryTimer) {
+            clearInterval(this.retryTimer);
+            this.retryTimer = null;
+        }
+
         if (this.stream) {
             this.stream.destroy();
+            this.stream = undefined;
         }
+    }
+
+    restart() {
+        this.stop();
+        this.start();
+    }
+
+    setDeviceId(deviceId) {
+        this.config.deviceId = deviceId;
+        this.restart();
+    }
+
+    scheduleRetry(newStream) {
+        if (this.retryTimer) {
+            return;
+        }
+
+        this.retryTimer = setInterval(() => {
+            if (this.stream) {
+                clearInterval(this.retryTimer);
+                this.retryTimer = null;
+                return;
+            }
+
+            this.stream = newStream();
+
+            if (this.stream) {
+                clearInterval(this.retryTimer);
+                this.retryTimer = null;
+            }
+        }, this.config.reconnectInterval);
     }
 }

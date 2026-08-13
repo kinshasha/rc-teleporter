@@ -21,7 +21,9 @@ $display-font-size: 24px;
 
 :host {
   background-color: $body-bgcolor;
+  box-sizing: border-box;
   display: block;
+  max-width: 100%;
   padding: 16px;
   user-select: none;
 }
@@ -128,7 +130,8 @@ $display-font-size: 24px;
     flex-direction: row;
     height: 256px;
     justify-content: center;
-    width: 370px;
+    max-width: 100%;
+    width: min(100%, 370px);
 
     > div {
       align-items: center;
@@ -142,7 +145,7 @@ $display-font-size: 24px;
       height: 120px;
       justify-content: center;
       padding: 8px;
-      width: 240px;
+      width: min(100%, 240px);
       white-space: pre-wrap;
 
       &.backlight {
@@ -153,6 +156,19 @@ $display-font-size: 24px;
           color: $backlight-on;
         }
       }
+    }
+  }
+}
+
+@media (max-width: 820px) {
+  :host {
+    padding: 12px;
+  }
+
+  .display {
+    > div {
+      height: auto;
+      min-height: 220px;
     }
   }
 }
