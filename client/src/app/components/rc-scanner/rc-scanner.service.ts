@@ -319,50 +319,54 @@ export class AppRcScannerService implements OnDestroy {
                 this.audioFramesReceived = 0;
                 this.audioStatus.emit('Connected. Waiting for scanner audio...');
 
-                this.wsAudio.onmessage = (ev: MessageEvent) => {
-                    if (this.audioContext && this.scannerConfig) {
-                        const arrayBufferView = new Int16Array(ev.data);
-
-                        const audioBuffer = this.audioContext.createBuffer(1, arrayBufferView.length, this.scannerConfig.sampleRate);
-
-                        const audioChannel = audioBuffer.getChannelData(0);
-
-                        const audioSource = this.audioContext.createBufferSource();
-
-                        for (let i = 0; i < arrayBufferView.length; i++) {
-                            audioChannel[i] = arrayBufferView[i] / 32768;
-                        }
-
-                        audioSource.buffer = audioBuffer;
-
-                        audioSource.connect(this.audioContext.destination);
-
-                        const start = () => {
-                            if (this.audioContext) {
-                                this.audioStartTime = Math.max(this.audioContext.currentTime, this.audioStartTime);
-
-                                audioSource.start(this.audioStartTime);
-
-                                this.audioStartTime += audioBuffer.duration;
-                            }
-                        };
-
-                        if (this.audioContext.state === 'suspended') {
-                            this.audioContext.resume().then(() => start());
-
-                        } else {
-                            start();
-                        }
-
-                        this.audioFramesReceived++;
-
-                        if (this.audioFramesReceived === 1) {
-                            this.audioStatus.emit('Receiving scanner audio.');
-                        }
-                    }
-                };
+                this.wsAudio.onmessage = (ev: MessageEvent) => this.playAudioFrame(ev.data);
             }
         };
+    }
+
+    private async playAudioFrame(data: unknown): Promise<void> {
+        if (!this.audioContext || !this.scannerConfig) {
+            return;
+        }
+
+        try {
+            const arrayBuffer = data instanceof Blob
+                ? await data.arrayBuffer()
+                : data instanceof ArrayBuffer
+                    ? data
+                    : null;
+
+            if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+                this.audioStatus.emit('Received an unreadable scanner audio frame.');
+                return;
+            }
+
+            const arrayBufferView = new Int16Array(arrayBuffer);
+            const audioBuffer = this.audioContext.createBuffer(1, arrayBufferView.length, this.scannerConfig.sampleRate);
+            const audioChannel = audioBuffer.getChannelData(0);
+            const audioSource = this.audioContext.createBufferSource();
+
+            for (let i = 0; i < arrayBufferView.length; i++) {
+                audioChannel[i] = arrayBufferView[i] / 32768;
+            }
+
+            audioSource.buffer = audioBuffer;
+            audioSource.connect(this.audioContext.destination);
+
+            this.audioStartTime = Math.max(this.audioContext.currentTime, this.audioStartTime);
+            audioSource.start(this.audioStartTime);
+            this.audioStartTime += audioBuffer.duration;
+
+            this.audioFramesReceived++;
+
+            if (this.audioFramesReceived === 1) {
+                this.audioStatus.emit('Receiving scanner audio.');
+            }
+
+        } catch (error) {
+            console.warn('Unable to play scanner audio.', error);
+            this.audioStatus.emit('Safari could not decode the scanner audio stream.');
+        }
     }
 
     private openControlWebSocket(): void {
