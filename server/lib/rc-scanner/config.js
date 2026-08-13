@@ -194,6 +194,22 @@ export class Config {
             encoder.on('error', () => res.end());
         });
 
+        app.router.get('/audio/webrtc/ice', async (req, res) => {
+            try {
+                const iceServers = await getTurnIceServers();
+
+                if (iceServers.length === 0) {
+                    return res.status(503).send({ error: 'Cloudflare TURN is not configured' });
+                }
+
+                res.setHeader('Cache-Control', 'no-store');
+                return res.send({ iceServers });
+
+            } catch (error) {
+                return res.status(502).send({ error: error.message || 'Unable to obtain TURN credentials' });
+            }
+        });
+
         app.router.post('/audio/webrtc/offer', async (req, res) => {
             const audio = app.rcScanner?.audio;
             const offer = req.body?.sdp;
@@ -202,7 +218,19 @@ export class Config {
                 return res.status(400).send({ error: 'A WebRTC offer and audio input are required' });
             }
 
-            const peer = new wrtc.RTCPeerConnection({ iceServers: [] });
+            let iceServers;
+
+            try {
+                iceServers = await getTurnIceServers();
+            } catch (error) {
+                return res.status(502).send({ error: error.message || 'Unable to obtain TURN credentials' });
+            }
+
+            if (iceServers.length === 0) {
+                return res.status(503).send({ error: 'Cloudflare TURN is not configured' });
+            }
+
+            const peer = new wrtc.RTCPeerConnection({ iceServers });
             const source = new wrtc.nonstandard.RTCAudioSource();
             const track = source.createTrack();
             let closed = false;
@@ -356,6 +384,42 @@ function waitForIceGathering(peer) {
             }
         };
     });
+}
+
+async function getTurnIceServers() {
+    const keyId = process.env.CF_TURN_KEY_ID;
+    const apiToken = process.env.CF_TURN_API_TOKEN;
+
+    if (!keyId || !apiToken) {
+        return [];
+    }
+
+    const response = await fetch(
+        `https://rtc.live.cloudflare.com/v1/turn/keys/${encodeURIComponent(keyId)}/credentials/generate-ice-servers`,
+        {
+            body: JSON.stringify({ ttl: 3600 }),
+            headers: {
+                Authorization: `Bearer ${apiToken}`,
+                'Content-Type': 'application/json',
+            },
+            method: 'POST',
+        },
+    );
+
+    if (!response.ok) {
+        throw new Error(`Cloudflare TURN credential request failed (${response.status})`);
+    }
+
+    const payload = await response.json();
+
+    return Array.isArray(payload?.iceServers)
+        ? payload.iceServers.map((server) => ({
+            ...server,
+            urls: Array.isArray(server.urls)
+                ? server.urls.filter((url) => !String(url).includes(':53'))
+                : server.urls,
+        }))
+        : [];
 }
 
 function createWavHeader(sampleRate, dataLength = 0xffffffff) {
