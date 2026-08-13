@@ -105,9 +105,10 @@ export class AppRcScannerService implements OnDestroy {
         const unlockSource = audioContext.createBufferSource();
         unlockSource.buffer = unlockBuffer;
         unlockSource.connect(audioContext.destination);
+        const resume = audioContext.resume();
         unlockSource.start();
 
-        await audioContext.resume();
+        await resume;
 
         if (!this.isPowerOn) {
             this.isPowerOn = true;
@@ -132,10 +133,15 @@ export class AppRcScannerService implements OnDestroy {
         gain.gain.value = 0.08;
         oscillator.connect(gain);
         gain.connect(audioContext.destination);
+        const resume = audioContext.resume();
         oscillator.start();
         oscillator.stop(audioContext.currentTime + 0.2);
 
-        await this.enableAudioPlayback();
+        await resume;
+
+        if (!this.isPowerOn) {
+            await this.enableAudioPlayback();
+        }
     }
 
     ngOnDestroy(): void {
