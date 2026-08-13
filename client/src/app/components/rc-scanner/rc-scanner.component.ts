@@ -106,6 +106,14 @@ export class AppRcScannerComponent implements OnDestroy {
         this.loadAudioDevices();
     }
 
+    enableAudioPlayback(): void {
+        this.audioStatus = 'Enabling audio playback...';
+
+        this.rcScannerService.enableAudioPlayback()
+            .then(() => this.audioStatus = 'Audio playback is enabled.')
+            .catch(() => this.audioStatus = 'Safari blocked audio playback. Tap this button again.');
+    }
+
     toggleAudioPanel(): void {
         this.audioPanelOpen = !this.audioPanelOpen;
 

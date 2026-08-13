@@ -67,6 +67,8 @@ export class AppRcScannerService implements OnDestroy {
 
     private audioStartTime = NaN;
 
+    private controlStatusTimer: number | undefined;
+
     private isPowerOn = false;
 
     private scannerConfig: AppRcScannerConfig | undefined;
@@ -88,14 +90,30 @@ export class AppRcScannerService implements OnDestroy {
     }
 
     async powerOn(): Promise<void> {
-        if (!this.isPowerOn) {
-            await this.audioReady.toPromise();
+        await this.enableAudioPlayback();
+    }
 
+    async enableAudioPlayback(): Promise<void> {
+        if (!this.audioContext) {
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)({
+                latencyHint: 'balanced',
+                sampleRate: this.scannerConfig?.sampleRate,
+            });
+        }
+
+        await this.audioContext.resume();
+
+        if (!this.isPowerOn) {
             this.isPowerOn = true;
 
             this.openAudioWebSocket();
 
             this.openControlWebSocket();
+
+            this.startControlStatusFallback();
+
+        } else if (!(this.wsAudio instanceof WebSocket)) {
+            this.openAudioWebSocket();
         }
     }
 
@@ -114,6 +132,8 @@ export class AppRcScannerService implements OnDestroy {
         if (this.wsControl instanceof WebSocket) {
             this.wsControl.close();
         }
+
+        this.stopControlStatusFallback();
     }
 
     send(message: string): void {
@@ -329,6 +349,8 @@ export class AppRcScannerService implements OnDestroy {
             }
 
             this.message.emit({ close: true });
+
+            this.startControlStatusFallback();
         };
 
         this.wsControl.onerror = (ev: Event) => this.message.emit({ error: ev });
@@ -337,9 +359,35 @@ export class AppRcScannerService implements OnDestroy {
             if (this.wsControl instanceof WebSocket) {
                 this.message.emit({ ready: true });
 
-                this.wsControl.onmessage = (ev: MessageEvent) => this.message.emit({ data: ev.data });
+                this.wsControl.onmessage = (ev: MessageEvent) => {
+                    this.stopControlStatusFallback();
+                    this.message.emit({ data: ev.data });
+                };
             }
         };
+    }
+
+    private startControlStatusFallback(): void {
+        if (this.controlStatusTimer !== undefined) {
+            return;
+        }
+
+        const poll = () => {
+            this.httpClient.get(this.getUrl('status'), { responseType: 'text' }).subscribe({
+                next: (data) => this.message.emit({ data }),
+                error: () => undefined,
+            });
+        };
+
+        poll();
+        this.controlStatusTimer = window.setInterval(poll, 1000);
+    }
+
+    private stopControlStatusFallback(): void {
+        if (this.controlStatusTimer !== undefined) {
+            window.clearInterval(this.controlStatusTimer);
+            this.controlStatusTimer = undefined;
+        }
     }
 
     private reconnectAudio(): void {

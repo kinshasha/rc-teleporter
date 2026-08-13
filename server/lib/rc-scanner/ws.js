@@ -49,6 +49,8 @@ export class Ws extends EventEmitter {
 
         this.controlCount = 0;
 
+        this.lastControlData = null;
+
         this.controlSocket = new WebSocket.Server({ noServer: true });
 
         this.controlSocket.on('connection', (ws) => {
@@ -92,6 +94,10 @@ export class Ws extends EventEmitter {
 
         this.driver = ctx.driver;
 
+        this.driver.on('data', (data) => {
+            this.lastControlData = data;
+        });
+
         this.httpServer = ctx.httpServer;
 
         this.httpServer.on('upgrade', (req, socket, head) => {
@@ -123,5 +129,26 @@ export class Ws extends EventEmitter {
 
             this.controlSocket.clients.forEach(check);
         }, this.config.keepAlive);
+    }
+
+    getControlStatus() {
+        return new Promise((resolve) => {
+            let settled = false;
+
+            const finish = (data) => {
+                if (!settled) {
+                    settled = true;
+                    resolve(data || this.lastControlData);
+                }
+            };
+
+            this.driver.once('data', finish);
+            this.driver.write('STS');
+
+            setTimeout(() => {
+                this.driver.removeListener('data', finish);
+                finish(this.lastControlData);
+            }, 1000);
+        });
     }
 }

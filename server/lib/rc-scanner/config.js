@@ -115,6 +115,18 @@ export class Config {
             res.send(devices);
         });
 
+        app.router.get('/status', async (req, res) => {
+            const status = await app.rcScanner?.ws?.getControlStatus();
+
+            res.setHeader('Cache-Control', 'no-store');
+
+            if (typeof status !== 'string' || status.length === 0) {
+                return res.status(503).send({ error: 'Scanner status is unavailable' });
+            }
+
+            return res.type('text/plain').send(status);
+        });
+
         app.router.post('/audio/device', (req, res) => {
             const deviceId = Number.parseInt(req.body?.deviceId, 10);
             const devices = naudiodon.getDevices().filter((device) => Number(device.maxInputChannels) > 0);
