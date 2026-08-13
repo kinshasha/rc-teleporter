@@ -44,6 +44,10 @@ export class AppRcScannerComponent implements OnDestroy {
 
     model: string = 'unknown';
 
+    screenWakeLockActive = false;
+
+    private screenWakeLock: { release: () => Promise<void> } | undefined;
+
     private subscription = new Subscription();
 
     constructor(ngElementRef: ElementRef, private rcScannerService: AppRcScannerService) {
@@ -70,6 +74,7 @@ export class AppRcScannerComponent implements OnDestroy {
 
     ngOnDestroy(): void {
         this.subscription.unsubscribe();
+        void this.releaseScreenWakeLock();
     }
 
     loadAudioDevices(): void {
@@ -130,5 +135,37 @@ export class AppRcScannerComponent implements OnDestroy {
         if (this.audioPanelOpen) {
             this.loadAudioDevices();
         }
+    }
+
+    async toggleScreenWakeLock(): Promise<void> {
+        if (this.screenWakeLockActive) {
+            await this.releaseScreenWakeLock();
+            return;
+        }
+
+        const wakeLock = navigator as Navigator & {
+            wakeLock?: { request: (type: 'screen') => Promise<{ release: () => Promise<void> }> };
+        };
+
+        if (!wakeLock.wakeLock) {
+            return;
+        }
+
+        try {
+            this.screenWakeLock = await wakeLock.wakeLock.request('screen');
+            this.screenWakeLockActive = true;
+
+        } catch (error) {
+            console.warn('Unable to keep the screen awake.', error);
+        }
+    }
+
+    private async releaseScreenWakeLock(): Promise<void> {
+        if (this.screenWakeLock) {
+            await this.screenWakeLock.release();
+            this.screenWakeLock = undefined;
+        }
+
+        this.screenWakeLockActive = false;
     }
 }

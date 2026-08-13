@@ -10,6 +10,11 @@
     RC Scanner v{{ appVersion }}
 </div>
 
+<button class="wake-lock-toggle" type="button" [class.is-active]="screenWakeLockActive"
+    (click)="toggleScreenWakeLock()">
+    {{ screenWakeLockActive ? 'Screen on' : 'Keep screen on' }}
+</button>
+
 <div class="audio-drawer" [class.is-open]="audioPanelOpen">
     <button class="audio-drawer__toggle" type="button" (click)="toggleAudioPanel()">
         <span class="audio-drawer__toggle-icon">{{ audioPanelOpen ? '×' : '♪' }}</span>

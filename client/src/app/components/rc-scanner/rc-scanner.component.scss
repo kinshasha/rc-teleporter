@@ -31,6 +31,28 @@
   z-index: 20;
 }
 
+.wake-lock-toggle {
+  background: rgba(36, 36, 36, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  padding: 9px 12px;
+  position: fixed;
+  right: calc(12px + env(safe-area-inset-right));
+  text-transform: uppercase;
+  top: calc(12px + env(safe-area-inset-top));
+  z-index: 30;
+}
+
+.wake-lock-toggle.is-active {
+  border-color: rgba(120, 230, 100, 0.75);
+  color: #bff5af;
+}
+
 .audio-drawer {
   align-items: flex-end;
   display: flex;
@@ -184,5 +206,10 @@
   .app-version {
     bottom: calc(10px + env(safe-area-inset-bottom));
     left: calc(10px + env(safe-area-inset-left));
+  }
+
+  .wake-lock-toggle {
+    right: calc(10px + env(safe-area-inset-right));
+    top: calc(10px + env(safe-area-inset-top));
   }
 }
