@@ -330,11 +330,7 @@ export class AppRcScannerService implements OnDestroy {
         }
 
         try {
-            const arrayBuffer = data instanceof Blob
-                ? await data.arrayBuffer()
-                : data instanceof ArrayBuffer
-                    ? data
-                    : null;
+            const arrayBuffer = await this.toAudioArrayBuffer(data);
 
             if (!arrayBuffer || arrayBuffer.byteLength === 0) {
                 this.audioStatus.emit('Received an unreadable scanner audio frame.');
@@ -367,6 +363,25 @@ export class AppRcScannerService implements OnDestroy {
             console.warn('Unable to play scanner audio.', error);
             this.audioStatus.emit('Safari could not decode the scanner audio stream.');
         }
+    }
+
+    private toAudioArrayBuffer(data: unknown): Promise<ArrayBuffer | null> {
+        if (data instanceof ArrayBuffer) {
+            return Promise.resolve(data);
+        }
+
+        if (!(data instanceof Blob)) {
+            return Promise.resolve(null);
+        }
+
+        // FileReader works on older iOS releases that lack Blob.arrayBuffer().
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+
+            reader.onerror = () => reject(reader.error || new Error('Unable to read audio frame.'));
+            reader.onload = () => resolve(reader.result instanceof ArrayBuffer ? reader.result : null);
+            reader.readAsArrayBuffer(data);
+        });
     }
 
     private openControlWebSocket(): void {
