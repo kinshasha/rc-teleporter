@@ -56,7 +56,7 @@ export class Audio extends EventEmitter {
                     if (this.config.squelch > 0) {
                         const array = new Int16Array(data.buffer);
 
-                        if (array.some((pcm) => pcm >= this.config.squelch)) {
+                        if (array.some((pcm) => Math.abs(pcm) >= this.config.squelch)) {
                             this.emit('data', data.buffer);
                         }
 
