@@ -296,7 +296,7 @@ export class AppRcScannerService implements OnDestroy {
     private openAudioWebSocket(): void {
         const url = this.getUrl('audio', { ws: true });
 
-        this.audioStartTime = this.audioContext?.currentTime || NaN;
+        this.audioStartTime = this.audioContext ? this.audioContext.currentTime : 0;
 
         this.wsAudio = new WebSocket(url);
 
@@ -353,7 +353,11 @@ export class AppRcScannerService implements OnDestroy {
             audioSource.buffer = audioBuffer;
             audioSource.connect(this.audioContext.destination);
 
-            this.audioStartTime = Math.max(this.audioContext.currentTime, this.audioStartTime);
+            const scheduledStart = Number.isFinite(this.audioStartTime)
+                ? this.audioStartTime
+                : this.audioContext.currentTime;
+
+            this.audioStartTime = Math.max(this.audioContext.currentTime, scheduledStart);
             audioSource.start(this.audioStartTime);
             this.audioStartTime += audioBuffer.duration;
 
