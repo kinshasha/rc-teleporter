@@ -32,13 +32,13 @@
 }
 
 .audio-drawer {
-  bottom: calc(12px + env(safe-area-inset-bottom));
   align-items: flex-end;
   display: flex;
   flex-direction: column-reverse;
   gap: 10px;
+  left: calc(12px + env(safe-area-inset-left));
   position: fixed;
-  right: calc(12px + env(safe-area-inset-right));
+  top: calc(12px + env(safe-area-inset-top));
   z-index: 30;
 }
 
@@ -163,8 +163,8 @@
   }
 
   .audio-drawer {
-    right: calc(10px + env(safe-area-inset-right));
-    bottom: calc(10px + env(safe-area-inset-bottom));
+    left: calc(10px + env(safe-area-inset-left));
+    top: calc(10px + env(safe-area-inset-top));
   }
 
   .audio-drawer__toggle {

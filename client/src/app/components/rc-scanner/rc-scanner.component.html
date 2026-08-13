@@ -13,7 +13,7 @@
 <div class="audio-drawer" [class.is-open]="audioPanelOpen">
     <button class="audio-drawer__toggle" type="button" (click)="toggleAudioPanel()">
         <span class="audio-drawer__toggle-icon">{{ audioPanelOpen ? '×' : '♪' }}</span>
-        <span class="audio-drawer__toggle-text">Mac input</span>
+        <span class="audio-drawer__toggle-text">Audio control</span>
     </button>
 
     <div class="audio-drawer__panel" *ngIf="audioPanelOpen">
