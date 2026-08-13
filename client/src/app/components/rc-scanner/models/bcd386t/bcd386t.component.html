@@ -1,7 +1,7 @@
 <div class="display" (dblclick)="toggleFullscreen()">
     <div>
         <div *ngIf="!powerOn">
-            <span class="large">Press Power or Touch Screen</span>
+            <span class="large">Press PWR or Touch Screen</span>
         </div>
         <div *ngIf="powerOn" [class.backlight]="backlight">
             <div *ngFor="let line of display; index as i" [ngClass]="{ large: line.size === 1, small: line.size === 0}">
