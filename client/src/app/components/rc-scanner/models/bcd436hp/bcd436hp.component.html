@@ -1,6 +1,6 @@
 <div [ngClass]="{ 'dimmer-low': dimmer === 1, 'dimmer-middle': dimmer === 2, 'dimmer-high': dimmer === 3 }">
     <div class="led" [ngClass]="led"></div>
-    <div (dblclick)="toggleFullscreen()">
+    <div (click)="onDisplayPress()" (dblclick)="toggleFullscreen()">
         <div *ngIf="!powerOn" class="display">
             <span class="large">Press Power</span>
         </div>

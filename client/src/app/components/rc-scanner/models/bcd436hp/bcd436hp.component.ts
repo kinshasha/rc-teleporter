@@ -85,6 +85,12 @@ export class AppRcScannerBcd436hpComponent implements OnDestroy, OnInit {
         this.rcScannerService.send('KEY,B,P');
     }
 
+    onDisplayPress(): void {
+        if (!this.powerOn) {
+            this.onLightPower();
+        }
+    }
+
     @HostListener('document:keydown.1')
     onDigitOne(): void {
         this.rcScannerService.send('KEY,1,P');
