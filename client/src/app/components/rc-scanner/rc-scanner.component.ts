@@ -52,6 +52,10 @@ export class AppRcScannerComponent implements OnDestroy {
             this.audioDeviceId = typeof config.audioDeviceId === 'number' ? config.audioDeviceId : -1;
         }));
 
+        this.subscription.add(this.rcScannerService.audioStatus.subscribe((status: string) => {
+            this.audioStatus = status;
+        }));
+
         rcScannerService.rootElement = ngElementRef.nativeElement;
 
         this.loadAudioDevices();

@@ -59,6 +59,8 @@ export class AppRcScannerService implements OnDestroy {
 
     readonly config = new EventEmitter<AppRcScannerConfig>();
 
+    readonly audioStatus = new EventEmitter<string>();
+
     readonly message = new EventEmitter<AppRcScannerMessage>();
 
     private audioContext: AudioContext | undefined;
@@ -66,6 +68,8 @@ export class AppRcScannerService implements OnDestroy {
     private audioReady = new EventEmitter<void>();
 
     private audioStartTime = NaN;
+
+    private audioFramesReceived = 0;
 
     private controlStatusTimer: number | undefined;
 
@@ -101,6 +105,13 @@ export class AppRcScannerService implements OnDestroy {
             });
         }
 
+        // iOS needs an actual source to start during the user gesture, not just resume().
+        const unlockBuffer = this.audioContext.createBuffer(1, 1, this.audioContext.sampleRate);
+        const unlockSource = this.audioContext.createBufferSource();
+        unlockSource.buffer = unlockBuffer;
+        unlockSource.connect(this.audioContext.destination);
+        unlockSource.start();
+
         await this.audioContext.resume();
 
         if (!this.isPowerOn) {
@@ -123,6 +134,7 @@ export class AppRcScannerService implements OnDestroy {
         }
 
         this.config.complete();
+        this.audioStatus.complete();
         this.message.complete();
 
         if (this.wsAudio instanceof WebSocket) {
@@ -288,16 +300,25 @@ export class AppRcScannerService implements OnDestroy {
 
         this.wsAudio = new WebSocket(url);
 
+        this.audioStatus.emit('Connecting to scanner audio...');
+
         this.wsAudio.binaryType = 'arraybuffer';
 
         this.wsAudio.onclose = (ev: CloseEvent) => {
+            this.audioStatus.emit(`Scanner audio disconnected (${ev.code}). Retrying...`);
+
             if (ev.code !== 1000) {
                 this.reconnectAudio();
             }
         };
 
+        this.wsAudio.onerror = () => this.audioStatus.emit('Safari could not open the scanner audio stream.');
+
         this.wsAudio.onopen = () => {
             if (this.wsAudio instanceof WebSocket) {
+                this.audioFramesReceived = 0;
+                this.audioStatus.emit('Connected. Waiting for scanner audio...');
+
                 this.wsAudio.onmessage = (ev: MessageEvent) => {
                     if (this.audioContext && this.scannerConfig) {
                         const arrayBufferView = new Int16Array(ev.data);
@@ -331,6 +352,12 @@ export class AppRcScannerService implements OnDestroy {
 
                         } else {
                             start();
+                        }
+
+                        this.audioFramesReceived++;
+
+                        if (this.audioFramesReceived === 1) {
+                            this.audioStatus.emit('Receiving scanner audio.');
                         }
                     }
                 };
