@@ -373,10 +373,11 @@ export class AppRcScannerService implements OnDestroy {
         const offer = await this.webRtcPeer.createOffer();
 
         await this.webRtcPeer.setLocalDescription(offer);
+        await this.waitForIceGathering(this.webRtcPeer);
 
         const answer = await this.httpClient.post<{ sdp: string; type: RTCSdpType }>(
             this.getUrl('audio/webrtc/offer'),
-            { sdp: offer.sdp },
+            { sdp: this.webRtcPeer.localDescription?.sdp },
         ).toPromise();
 
         if (!answer?.sdp || !answer.type) {
@@ -384,6 +385,23 @@ export class AppRcScannerService implements OnDestroy {
         }
 
         await this.webRtcPeer.setRemoteDescription(answer);
+    }
+
+    private waitForIceGathering(peer: RTCPeerConnection): Promise<void> {
+        if (peer.iceGatheringState === 'complete') {
+            return Promise.resolve();
+        }
+
+        return new Promise((resolve) => {
+            const timeout = window.setTimeout(resolve, 1000);
+
+            peer.onicegatheringstatechange = () => {
+                if (peer.iceGatheringState === 'complete') {
+                    window.clearTimeout(timeout);
+                    resolve();
+                }
+            };
+        });
     }
 
     private async playAudioFrame(data: unknown): Promise<void> {
