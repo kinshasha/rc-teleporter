@@ -6,10 +6,6 @@
     </ng-container>
 </div>
 
-<div class="app-version" aria-label="RC Scanner application version">
-    RC Scanner v{{ appVersion }}
-</div>
-
 <button class="wake-lock-toggle" type="button" [class.is-active]="screenWakeLockActive"
     [class.is-unavailable]="screenWakeLockStatus === 'unavailable'"
     (click)="toggleScreenWakeLock()">

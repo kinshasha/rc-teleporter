@@ -20,17 +20,6 @@
   width: 100%;
 }
 
-.app-version {
-  bottom: calc(12px + env(safe-area-inset-bottom));
-  color: rgba(255, 255, 255, 0.52);
-  font-size: 11px;
-  left: calc(12px + env(safe-area-inset-left));
-  letter-spacing: 0.06em;
-  position: fixed;
-  text-transform: uppercase;
-  z-index: 20;
-}
-
 .wake-lock-toggle {
   background: rgba(55, 55, 55, 0.96);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -218,11 +207,6 @@
 
   .audio-drawer__controls {
     min-height: 48px;
-  }
-
-  .app-version {
-    bottom: calc(10px + env(safe-area-inset-bottom));
-    left: calc(10px + env(safe-area-inset-left));
   }
 
   .wake-lock-toggle {
