@@ -11,7 +11,7 @@ The view-only listener shares the same USB serial connection, audio device, and 
 
 Port `3001` provides only the viewer application, model configuration, the read-only `/display` WebSocket, and WebRTC audio endpoints.
 
-It does not provide the control WebSocket, scanner keypad commands, audio input selection, raw MP3/WAV streams, or test audio endpoint.
+It does not provide the control WebSocket, scanner keypad commands, audio input selection, raw MP3/WAV streams, or test audio endpoint. After the initial display tap enables audio, later display taps send only the VFO-push command for scanner beep feedback.
 
 ## Configuration
 

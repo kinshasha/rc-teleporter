@@ -74,6 +74,24 @@ export class AppRcScannerBcd386tComponent implements OnDestroy, OnInit {
         });
     }
 
+    onDisplayPress(): void {
+        if (!this.powerOn) {
+            if (this.readOnly) {
+                this.powerOn = true;
+                void this.rcScannerService.powerOn();
+
+            } else {
+                this.onLightPower();
+            }
+
+            return;
+        }
+
+        if (this.readOnly) {
+            this.rcScannerService.sendViewerVfoPush();
+        }
+    }
+
     @HostListener('document:keydown.1')
     onDigitOne(): void {
         this.rcScannerService.send('KEY,1,P');

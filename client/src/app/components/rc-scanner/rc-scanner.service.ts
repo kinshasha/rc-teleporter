@@ -174,6 +174,12 @@ export class AppRcScannerService implements OnDestroy {
         }
     }
 
+    sendViewerVfoPush(): void {
+        if (this.readOnly && this.wsViewer?.readyState === WebSocket.OPEN) {
+            this.wsViewer.send('KEY,^,P');
+        }
+    }
+
     toggleFullscreen(): void {
         if (this.document.fullscreenElement) {
             const el: {

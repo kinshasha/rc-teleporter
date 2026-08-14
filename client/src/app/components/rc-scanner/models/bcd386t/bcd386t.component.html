@@ -1,9 +1,9 @@
-<div class="display" (dblclick)="toggleFullscreen()">
+<div class="display" (click)="onDisplayPress()" (dblclick)="toggleFullscreen()">
     <div>
-        <div *ngIf="!powerOn && !readOnly">
+        <div *ngIf="!powerOn">
             <span class="large">Press PWR or Touch Screen</span>
         </div>
-        <div *ngIf="powerOn || readOnly" [class.backlight]="backlight">
+        <div *ngIf="powerOn" [class.backlight]="backlight">
             <div *ngFor="let line of display; index as i" [ngClass]="{ large: line.size === 1, small: line.size === 0}">
                 <span *ngFor="let char of line.text; index as j"
                     [ngClass]="{ reverse: line.mode[j] === '*', underline: line.mode[j] === '_' }">{{ char }}</span>

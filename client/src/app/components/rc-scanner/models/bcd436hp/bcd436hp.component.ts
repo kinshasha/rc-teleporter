@@ -90,12 +90,20 @@ export class AppRcScannerBcd436hpComponent implements OnDestroy, OnInit {
     }
 
     onDisplayPress(): void {
-        if (this.readOnly) {
+        if (!this.powerOn) {
+            if (this.readOnly) {
+                this.powerOn = true;
+                void this.rcScannerService.powerOn();
+
+            } else {
+                this.onLightPower();
+            }
+
             return;
         }
 
-        if (!this.powerOn) {
-            this.onLightPower();
+        if (this.readOnly) {
+            this.rcScannerService.sendViewerVfoPush();
         }
     }
 

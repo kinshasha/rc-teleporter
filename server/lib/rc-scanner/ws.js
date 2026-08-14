@@ -96,6 +96,12 @@ export class Ws extends EventEmitter {
                 driverHandler(this.lastControlData);
             }
 
+            // The view-only interface may request a harmless VFO press for audible feedback only.
+            ws.on('message', (message) => {
+                if (message.toString() === 'KEY,^,P') {
+                    this.driver.write('KEY,^,P');
+                }
+            });
             ws.on('close', () => this.removeObserver(driverHandler));
             ws.on('pong', () => ws.isAlive = true);
         });
