@@ -29,6 +29,8 @@ export class Config {
     constructor(app) {
         const config = app.config.rcScanner;
 
+        this.viewerSessions = new Map();
+
         this.audio = {
             deviceId: typeof config?.audio?.deviceId === 'number'
                 ? config.audio.deviceId
@@ -194,7 +196,7 @@ export class Config {
             encoder.on('error', () => res.end());
         });
 
-        this.registerWebRtcRoutes(app.router, app);
+        this.registerWebRtcRoutes(app.router, app, false);
 
         app.router.get('/audio/test.wav', (req, res) => {
             const sampleRate = 44100;
@@ -263,11 +265,24 @@ export class Config {
                 });
             });
 
-            this.registerWebRtcRoutes(app.viewerRouter, app);
+            this.registerWebRtcRoutes(app.viewerRouter, app, true);
         }
     }
 
-    registerWebRtcRoutes(router, app) {
+    registerWebRtcRoutes(router, app, viewOnly) {
+        if (viewOnly) {
+            router.post('/audio/webrtc/session/:sessionId/close', (req, res) => {
+                const close = this.viewerSessions.get(req.params.sessionId);
+
+                if (!close) {
+                    return res.status(404).end();
+                }
+
+                close();
+                return res.status(204).end();
+            });
+        }
+
         router.get('/audio/webrtc/ice', async (req, res) => {
             try {
                 const iceServers = await getTurnIceServers();
@@ -300,6 +315,8 @@ export class Config {
             const source = new wrtc.nonstandard.RTCAudioSource();
             const track = source.createTrack();
             let closed = false;
+            let viewerSessionId;
+            let viewerStreamTracked = false;
 
             peer.addTrack(track);
 
@@ -316,13 +333,24 @@ export class Config {
                 audio.removeListener('data', audioHandler);
                 track.stop();
                 peer.close();
+
+                if (viewerStreamTracked) {
+                    app.rcScanner?.ws?.removeViewerStream();
+                }
+
+                if (viewerSessionId) {
+                    this.viewerSessions.delete(viewerSessionId);
+                }
             };
 
-            peer.onconnectionstatechange = () => {
+            const closeIfStopped = () => {
                 if (['closed', 'failed', 'disconnected'].includes(peer.connectionState)) {
                     close();
                 }
             };
+
+            peer.onconnectionstatechange = closeIfStopped;
+            peer.oniceconnectionstatechange = closeIfStopped;
 
             try {
                 await peer.setRemoteDescription(new wrtc.RTCSessionDescription({ type: 'offer', sdp: offer }));
@@ -331,7 +359,18 @@ export class Config {
                 await peer.setLocalDescription(answer);
                 await waitForIceGathering(peer);
 
-                return res.send({ sdp: peer.localDescription?.sdp, type: peer.localDescription?.type });
+                if (viewOnly && !viewerStreamTracked) {
+                    viewerStreamTracked = true;
+                    viewerSessionId = crypto.randomUUID();
+                    this.viewerSessions.set(viewerSessionId, close);
+                    app.rcScanner?.ws?.addViewerStream();
+                }
+
+                return res.send({
+                    sdp: peer.localDescription?.sdp,
+                    sessionId: viewerSessionId,
+                    type: peer.localDescription?.type,
+                });
 
             } catch (error) {
                 close();

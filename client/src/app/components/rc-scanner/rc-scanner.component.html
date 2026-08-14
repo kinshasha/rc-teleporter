@@ -52,6 +52,11 @@
 </ng-container>
 
 <div *ngIf="isReadOnly" class="viewer-audio">
-    <button class="viewer-audio__button" type="button" (click)="enableAudioPlayback()">Enable audio</button>
-    <span class="viewer-audio__status">{{ audioStatus }}</span>
+    <span class="viewer-audio__streams">{{ viewerStreamCount }} {{ viewerStreamCount === 1 ? 'stream' : 'streams' }}</span>
 </div>
+
+<button *ngIf="isReadOnly" class="viewer-wake-toggle" type="button" [class.is-active]="screenWakeLockActive"
+    [class.is-unavailable]="screenWakeLockStatus === 'unavailable'"
+    [attr.aria-label]="screenWakeLockActive ? 'Allow screen sleep' : 'Keep screen on'" (click)="toggleScreenWakeLock()">
+    <span aria-hidden="true">☀</span>
+</button>

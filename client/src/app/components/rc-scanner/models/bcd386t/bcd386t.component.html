@@ -11,7 +11,7 @@
         </div>
     </div>
 </div>
-<div *ngIf="!readOnly" class="control flex-col">
+<div class="control flex-col" [class.read-only-control]="readOnly">
     <div class="button-group style-1 flex-row">
         <div class="flex flex-25 col">
             <div class="button-wrapper flex-50 flex-col">

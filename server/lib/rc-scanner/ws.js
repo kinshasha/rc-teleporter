@@ -79,6 +79,8 @@ export class Ws extends EventEmitter {
 
         this.viewerSocket = new WebSocket.Server({ noServer: true });
 
+        this.viewerStreamCount = 0;
+
         this.viewerSocket.on('connection', (ws) => {
             let previousData;
 
@@ -91,6 +93,7 @@ export class Ws extends EventEmitter {
 
             this.addObserver(driverHandler);
             ws.isAlive = true;
+            this.sendViewerState(ws);
 
             if (this.lastControlData) {
                 driverHandler(this.lastControlData);
@@ -150,6 +153,26 @@ export class Ws extends EventEmitter {
 
         if (this.observerCount === 0) {
             this.driver.stop();
+        }
+    }
+
+    addViewerStream() {
+        this.viewerStreamCount++;
+        this.broadcastViewerState();
+    }
+
+    removeViewerStream() {
+        this.viewerStreamCount = Math.max(0, this.viewerStreamCount - 1);
+        this.broadcastViewerState();
+    }
+
+    broadcastViewerState() {
+        this.viewerSocket.clients.forEach((ws) => this.sendViewerState(ws));
+    }
+
+    sendViewerState(ws) {
+        if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ streams: this.viewerStreamCount, type: 'viewer-state' }));
         }
     }
 

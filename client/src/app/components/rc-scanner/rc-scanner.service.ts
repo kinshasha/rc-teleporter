@@ -66,6 +66,8 @@ export class AppRcScannerService implements OnDestroy {
 
     readonly message = new EventEmitter<AppRcScannerMessage>();
 
+    readonly viewerStreams = new EventEmitter<number>();
+
     private audioContext: AudioContext | undefined;
 
     private audioReady = new EventEmitter<void>();
@@ -83,6 +85,8 @@ export class AppRcScannerService implements OnDestroy {
     private webRtcAudio: HTMLAudioElement | undefined;
 
     private webRtcPeer: RTCPeerConnection | undefined;
+
+    private viewerWebRtcSessionId: string | undefined;
 
     private testToneAudio: HTMLAudioElement | undefined;
 
@@ -145,6 +149,7 @@ export class AppRcScannerService implements OnDestroy {
         this.config.complete();
         this.audioStatus.complete();
         this.message.complete();
+        this.viewerStreams.complete();
 
         if (this.wsAudio instanceof WebSocket) {
             this.wsAudio.close();
@@ -152,6 +157,7 @@ export class AppRcScannerService implements OnDestroy {
 
         this.nativeAudio?.pause();
         this.webRtcAudio?.pause();
+        this.closeViewerWebRtcSession();
         this.webRtcPeer?.close();
         this.testToneAudio?.pause();
 
@@ -395,6 +401,7 @@ export class AppRcScannerService implements OnDestroy {
 
         const turn = await this.httpClient.get<{ iceServers: RTCIceServer[] }>(this.getUrl('audio/webrtc/ice')).toPromise();
 
+        this.closeViewerWebRtcSession();
         this.webRtcPeer?.close();
         this.webRtcPeer = new RTCPeerConnection({ iceServers: turn?.iceServers || [] });
         this.webRtcPeer.addTransceiver('audio', { direction: 'recvonly' });
@@ -417,7 +424,7 @@ export class AppRcScannerService implements OnDestroy {
         await this.webRtcPeer.setLocalDescription(offer);
         await this.waitForIceGathering(this.webRtcPeer);
 
-        const answer = await this.httpClient.post<{ sdp: string; type: RTCSdpType }>(
+        const answer = await this.httpClient.post<{ sdp: string; sessionId?: string; type: RTCSdpType }>(
             this.getUrl('audio/webrtc/offer'),
             { sdp: this.webRtcPeer.localDescription?.sdp },
         ).toPromise();
@@ -427,6 +434,28 @@ export class AppRcScannerService implements OnDestroy {
         }
 
         await this.webRtcPeer.setRemoteDescription(answer);
+
+        if (this.readOnly && typeof answer.sessionId === 'string') {
+            this.viewerWebRtcSessionId = answer.sessionId;
+        }
+    }
+
+    private closeViewerWebRtcSession(): void {
+        const sessionId = this.viewerWebRtcSessionId;
+        this.viewerWebRtcSessionId = undefined;
+
+        if (!sessionId) {
+            return;
+        }
+
+        const url = this.getUrl(`audio/webrtc/session/${encodeURIComponent(sessionId)}/close`);
+
+        if (navigator.sendBeacon) {
+            navigator.sendBeacon(url, '');
+
+        } else {
+            this.httpClient.post(url, {}).subscribe({ error: () => undefined });
+        }
     }
 
     private waitForIceGathering(peer: RTCPeerConnection): Promise<void> {
@@ -579,9 +608,27 @@ export class AppRcScannerService implements OnDestroy {
             if (this.wsViewer instanceof WebSocket) {
                 this.message.emit({ ready: true });
 
-                this.wsViewer.onmessage = (ev: MessageEvent) => this.message.emit({ data: ev.data });
+                this.wsViewer.onmessage = (ev: MessageEvent) => this.handleViewerMessage(ev.data);
             }
         };
+    }
+
+    private handleViewerMessage(data: unknown): void {
+        if (typeof data === 'string') {
+            try {
+                const message = JSON.parse(data);
+
+                if (message?.type === 'viewer-state' && Number.isInteger(message.streams)) {
+                    this.viewerStreams.emit(message.streams);
+                    return;
+                }
+
+            } catch (error) {
+                // Scanner display frames are plain text, not JSON.
+            }
+
+            this.message.emit({ data });
+        }
     }
 
     private startControlStatusFallback(): void {

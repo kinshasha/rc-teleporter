@@ -47,6 +47,8 @@ export class AppRcScannerComponent implements OnDestroy {
 
     screenWakeLockStatus: 'off' | 'on' | 'unavailable' = 'off';
 
+    viewerStreamCount = 0;
+
     private screenWakeLock: {
         addEventListener?: (type: 'release', listener: () => void) => void;
         release: () => Promise<void>;
@@ -63,7 +65,7 @@ export class AppRcScannerComponent implements OnDestroy {
             this.isReadOnly = config.viewOnly === true;
 
             if (this.isReadOnly) {
-                this.audioStatus = 'Tap Enable Audio to listen.';
+                this.audioStatus = '';
 
             } else {
                 this.loadAudioDevices();
@@ -72,6 +74,10 @@ export class AppRcScannerComponent implements OnDestroy {
 
         this.subscription.add(this.rcScannerService.audioStatus.subscribe((status: string) => {
             this.audioStatus = status;
+        }));
+
+        this.subscription.add(this.rcScannerService.viewerStreams.subscribe((count: number) => {
+            this.viewerStreamCount = count;
         }));
 
         rcScannerService.rootElement = ngElementRef.nativeElement;
