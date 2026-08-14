@@ -23,6 +23,10 @@ import EventEmitter from 'events';
 import { URL } from 'url';
 import WebSocket from 'ws';
 
+// This is the sole command deliberately exposed by the view-only listener.
+const VIEWER_VFO_PUSH = 'KEY,^,P';
+const VIEWER_COMMAND_COOLDOWN_MS = 350;
+
 export class Ws extends EventEmitter {
     constructor(ctx) {
         super();
@@ -83,6 +87,7 @@ export class Ws extends EventEmitter {
 
         this.viewerSocket.on('connection', (ws) => {
             let previousData;
+            let lastViewerCommandAt = 0;
 
             const driverHandler = (data) => {
                 if (data !== previousData && ws.readyState === WebSocket.OPEN) {
@@ -99,11 +104,20 @@ export class Ws extends EventEmitter {
                 driverHandler(this.lastControlData);
             }
 
-            // The view-only interface may request a harmless VFO press for audible feedback only.
-            ws.on('message', (message) => {
-                if (message.toString() === 'KEY,^,P') {
-                    this.driver.write('KEY,^,P');
+            // DOM/CSS changes cannot expand this server-side allowlist.
+            ws.on('message', (message, isBinary) => {
+                if (isBinary || message.toString() !== VIEWER_VFO_PUSH) {
+                    return;
                 }
+
+                const now = Date.now();
+
+                if (now - lastViewerCommandAt < VIEWER_COMMAND_COOLDOWN_MS) {
+                    return;
+                }
+
+                lastViewerCommandAt = now;
+                this.driver.write(VIEWER_VFO_PUSH);
             });
             ws.on('close', () => this.removeObserver(driverHandler));
             ws.on('pong', () => ws.isAlive = true);

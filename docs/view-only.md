@@ -13,6 +13,8 @@ Port `3001` provides only the viewer application, model configuration, the read-
 
 It does not provide the control WebSocket, scanner keypad commands, audio input selection, raw MP3/WAV streams, or test audio endpoint. After the initial display tap enables audio, later display taps send only the VFO-push command for scanner beep feedback.
 
+The disabled keypad overlay is only a visual indicator, not the security boundary. The viewer server accepts one text command only (`KEY,^,P` for VFO push), rejects binary and all other commands, and rate-limits VFO push requests to one every 350 ms. Removing browser CSS or changing client-side JavaScript cannot grant configuration or keypad control. Protect the view hostname with Cloudflare Access as well, to control who can view or listen.
+
 ## Configuration
 
 The listener is enabled by default. Configure it in `server/config.json` if needed:
