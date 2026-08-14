@@ -12,6 +12,18 @@
     // (number) Which PORT to bind to? Default is 3000
     "port": 3000,
 
+    // Read-only display and WebRTC audio listener.
+    "viewer": {
+      // (boolean) Enable the read-only listener. Default is true.
+      "enabled": true,
+
+      // (string) Which IP to bind to? Default is nodejs.host.
+      "host": "0.0.0.0",
+
+      // (number) Which PORT to bind to? Default is 3001.
+      "port": 3001
+    },
+
     // (boolean) Run server in https mode
     "ssl": false,
 

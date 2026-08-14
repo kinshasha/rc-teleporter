@@ -71,6 +71,8 @@ export class RcScanner extends EventEmitter {
 
         this.httpServer = app.httpServer;
 
+        this.viewerHttpServer = app.viewerHttpServer;
+
         this.ws = new Ws(this);
 
         process.nextTick(() => this.emit('ready'));

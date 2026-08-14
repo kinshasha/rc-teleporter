@@ -47,7 +47,7 @@ export class Ws extends EventEmitter {
             ws.on('pong', () => ws.isAlive = true);
         });
 
-        this.controlCount = 0;
+        this.observerCount = 0;
 
         this.lastControlData = null;
 
@@ -64,25 +64,11 @@ export class Ws extends EventEmitter {
                 }
             };
 
-            this.controlCount++;
-
-            this.driver.on('data', driverHandler);
-
-            if (this.controlCount === 1) {
-                this.driver.start();
-            }
+            this.addObserver(driverHandler);
 
             ws.isAlive = true;
 
-            ws.on('close', () => {
-                this.controlCount--;
-
-                this.driver.removeListener('data', driverHandler);
-
-                if (this.controlCount === 0) {
-                    this.driver.stop();
-                }
-            });
+            ws.on('close', () => this.removeObserver(driverHandler));
 
             ws.on('message', (message) => this.driver.write(message));
 
@@ -91,6 +77,28 @@ export class Ws extends EventEmitter {
             });
         });
 
+        this.viewerSocket = new WebSocket.Server({ noServer: true });
+
+        this.viewerSocket.on('connection', (ws) => {
+            let previousData;
+
+            const driverHandler = (data) => {
+                if (data !== previousData && ws.readyState === WebSocket.OPEN) {
+                    previousData = data;
+                    ws.send(data);
+                }
+            };
+
+            this.addObserver(driverHandler);
+            ws.isAlive = true;
+
+            if (this.lastControlData) {
+                driverHandler(this.lastControlData);
+            }
+
+            ws.on('close', () => this.removeObserver(driverHandler));
+            ws.on('pong', () => ws.isAlive = true);
+        });
 
         this.driver = ctx.driver;
 
@@ -98,21 +106,11 @@ export class Ws extends EventEmitter {
             this.lastControlData = data;
         });
 
-        this.httpServer = ctx.httpServer;
+        this.attachUpgradeHandler(ctx.httpServer, false);
 
-        this.httpServer.on('upgrade', (req, socket, head) => {
-            const pathname = new URL(req.url, `http://${req.headers.host}`).pathname;
-
-            if (pathname === '/audio') {
-                this.audioSocket.handleUpgrade(req, socket, head, (ws) => this.audioSocket.emit('connection', ws, req));
-
-            } else if (pathname === '/control') {
-                this.controlSocket.handleUpgrade(req, socket, head, (ws) => this.controlSocket.emit('connection', ws, req));
-
-            } else {
-                socket.destroy();
-            }
-        });
+        if (ctx.viewerHttpServer) {
+            this.attachUpgradeHandler(ctx.viewerHttpServer, true);
+        }
 
         setInterval(() => {
             const check = (ws) => {
@@ -126,9 +124,46 @@ export class Ws extends EventEmitter {
             };
 
             this.audioSocket.clients.forEach(check);
-
             this.controlSocket.clients.forEach(check);
+            this.viewerSocket.clients.forEach(check);
         }, this.config.keepAlive);
+    }
+
+    addObserver(handler) {
+        this.observerCount++;
+        this.driver.on('data', handler);
+
+        if (this.observerCount === 1) {
+            this.driver.start();
+        }
+    }
+
+    removeObserver(handler) {
+        this.observerCount = Math.max(0, this.observerCount - 1);
+        this.driver.removeListener('data', handler);
+
+        if (this.observerCount === 0) {
+            this.driver.stop();
+        }
+    }
+
+    attachUpgradeHandler(httpServer, viewOnly) {
+        httpServer.on('upgrade', (req, socket, head) => {
+            const pathname = new URL(req.url, `http://${req.headers.host}`).pathname;
+
+            if (viewOnly && pathname === '/display') {
+                this.viewerSocket.handleUpgrade(req, socket, head, (ws) => this.viewerSocket.emit('connection', ws, req));
+
+            } else if (!viewOnly && pathname === '/audio') {
+                this.audioSocket.handleUpgrade(req, socket, head, (ws) => this.audioSocket.emit('connection', ws, req));
+
+            } else if (!viewOnly && pathname === '/control') {
+                this.controlSocket.handleUpgrade(req, socket, head, (ws) => this.controlSocket.emit('connection', ws, req));
+
+            } else {
+                socket.destroy();
+            }
+        });
     }
 
     getControlStatus() {

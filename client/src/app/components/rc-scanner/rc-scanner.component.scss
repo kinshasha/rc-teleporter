@@ -59,6 +59,39 @@
   width: 1px;
 }
 
+.viewer-audio {
+  align-items: center;
+  background: rgba(30, 30, 30, 0.94);
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  display: flex;
+  gap: 10px;
+  left: 50%;
+  max-width: calc(100vw - 24px);
+  padding: 8px 10px;
+  position: fixed;
+  transform: translateX(-50%);
+  width: max-content;
+  z-index: 30;
+}
+
+.viewer-audio__button {
+  background: #3d3d3d;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  padding: 10px 14px;
+  text-transform: uppercase;
+}
+
+.viewer-audio__status {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+  max-width: 180px;
+}
+
 .audio-drawer {
   align-items: flex-end;
   display: flex;

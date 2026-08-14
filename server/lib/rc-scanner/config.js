@@ -194,7 +194,81 @@ export class Config {
             encoder.on('error', () => res.end());
         });
 
-        app.router.get('/audio/webrtc/ice', async (req, res) => {
+        this.registerWebRtcRoutes(app.router, app);
+
+        app.router.get('/audio/test.wav', (req, res) => {
+            const sampleRate = 44100;
+            const samples = Math.round(sampleRate * 0.25);
+            const pcm = Buffer.alloc(samples * 2);
+
+            for (let i = 0; i < samples; i++) {
+                const value = Math.round(Math.sin((2 * Math.PI * 880 * i) / sampleRate) * 8192);
+                pcm.writeInt16LE(value, i * 2);
+            }
+
+            res.set({
+                'Cache-Control': 'no-store',
+                'Content-Type': 'audio/wav',
+            });
+            res.send(Buffer.concat([createWavHeader(sampleRate, pcm.length), pcm]));
+        });
+
+        app.router.get('/status', async (req, res) => {
+            const status = await app.rcScanner?.ws?.getControlStatus();
+
+            res.setHeader('Cache-Control', 'no-store');
+
+            if (typeof status !== 'string' || status.length === 0) {
+                return res.status(503).send({ error: 'Scanner status is unavailable' });
+            }
+
+            return res.type('text/plain').send(status);
+        });
+
+        app.router.post('/audio/device', (req, res) => {
+            const deviceId = Number.parseInt(req.body?.deviceId, 10);
+            const devices = naudiodon.getDevices().filter((device) => Number(device.maxInputChannels) > 0);
+
+            if (!Number.isInteger(deviceId)) {
+                return res.status(400).send({ error: 'Invalid deviceId' });
+            }
+
+            if (deviceId !== -1 && !devices.some((device) => device.id === deviceId)) {
+                return res.status(400).send({ error: 'Unknown audio device' });
+            }
+
+            if (this.audio.deviceId === deviceId) {
+                return res.send({ deviceId });
+            }
+
+            this.audio.deviceId = deviceId;
+
+            if (app.rcScanner?.audio?.setDeviceId instanceof Function) {
+                app.rcScanner.audio.setDeviceId(deviceId);
+            }
+
+            app.saveConfig();
+
+            return res.send({ deviceId });
+        });
+
+        if (app.viewerRouter) {
+            app.viewerRouter.get('/config', (req, res) => {
+                res.setHeader('Cache-Control', 'no-store');
+                return res.send({
+                    model: this.model,
+                    reconnectInterval: this.webSocket.reconnectInterval,
+                    sampleRate: this.audio.sampleRate,
+                    viewOnly: true,
+                });
+            });
+
+            this.registerWebRtcRoutes(app.viewerRouter, app);
+        }
+    }
+
+    registerWebRtcRoutes(router, app) {
+        router.get('/audio/webrtc/ice', async (req, res) => {
             try {
                 const iceServers = await getTurnIceServers();
 
@@ -206,7 +280,7 @@ export class Config {
             }
         });
 
-        app.router.post('/audio/webrtc/offer', async (req, res) => {
+        router.post('/audio/webrtc/offer', async (req, res) => {
             const audio = app.rcScanner?.audio;
             const offer = req.body?.sdp;
 
@@ -263,62 +337,6 @@ export class Config {
                 close();
                 return res.status(500).send({ error: error.message || 'Unable to establish WebRTC audio' });
             }
-        });
-
-        app.router.get('/audio/test.wav', (req, res) => {
-            const sampleRate = 44100;
-            const samples = Math.round(sampleRate * 0.25);
-            const pcm = Buffer.alloc(samples * 2);
-
-            for (let i = 0; i < samples; i++) {
-                const value = Math.round(Math.sin((2 * Math.PI * 880 * i) / sampleRate) * 8192);
-                pcm.writeInt16LE(value, i * 2);
-            }
-
-            res.set({
-                'Cache-Control': 'no-store',
-                'Content-Type': 'audio/wav',
-            });
-            res.send(Buffer.concat([createWavHeader(sampleRate, pcm.length), pcm]));
-        });
-
-        app.router.get('/status', async (req, res) => {
-            const status = await app.rcScanner?.ws?.getControlStatus();
-
-            res.setHeader('Cache-Control', 'no-store');
-
-            if (typeof status !== 'string' || status.length === 0) {
-                return res.status(503).send({ error: 'Scanner status is unavailable' });
-            }
-
-            return res.type('text/plain').send(status);
-        });
-
-        app.router.post('/audio/device', (req, res) => {
-            const deviceId = Number.parseInt(req.body?.deviceId, 10);
-            const devices = naudiodon.getDevices().filter((device) => Number(device.maxInputChannels) > 0);
-
-            if (!Number.isInteger(deviceId)) {
-                return res.status(400).send({ error: 'Invalid deviceId' });
-            }
-
-            if (deviceId !== -1 && !devices.some((device) => device.id === deviceId)) {
-                return res.status(400).send({ error: 'Unknown audio device' });
-            }
-
-            if (this.audio.deviceId === deviceId) {
-                return res.send({ deviceId });
-            }
-
-            this.audio.deviceId = deviceId;
-
-            if (app.rcScanner?.audio?.setDeviceId instanceof Function) {
-                app.rcScanner.audio.setDeviceId(deviceId);
-            }
-
-            app.saveConfig();
-
-            return res.send({ deviceId });
         });
     }
 }

@@ -41,6 +41,8 @@ export class AppRcScannerBcd386tComponent implements OnDestroy, OnInit {
 
     powerOn = false;
 
+    readonly readOnly: boolean;
+
     readonly display: Display[] = [];
 
     private fnKeyTimerSubscription: Subscription | null = null;
@@ -52,7 +54,9 @@ export class AppRcScannerBcd386tComponent implements OnDestroy, OnInit {
     constructor(
         private ngChangeDetectorReg: ChangeDetectorRef,
         private rcScannerService: AppRcScannerService,
-    ) { }
+    ) {
+        this.readOnly = rcScannerService.readOnly;
+    }
 
     ngOnDestroy(): void {
         if (this.subscription instanceof Subscription) {
@@ -176,6 +180,10 @@ export class AppRcScannerBcd386tComponent implements OnDestroy, OnInit {
 
     // @HostListener('document:keydown.l')
     onLightPower(): void {
+        if (this.readOnly) {
+            return;
+        }
+
         if (this.powerOn) {
             this.rcScannerService.send('KEY,P,P');
 

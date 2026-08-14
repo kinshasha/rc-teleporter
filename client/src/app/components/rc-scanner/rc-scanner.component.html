@@ -6,6 +6,7 @@
     </ng-container>
 </div>
 
+<ng-container *ngIf="!isReadOnly">
 <button class="wake-lock-toggle" type="button" [class.is-active]="screenWakeLockActive"
     [class.is-unavailable]="screenWakeLockStatus === 'unavailable'"
     (click)="toggleScreenWakeLock()">
@@ -47,4 +48,10 @@
 
         <div class="audio-drawer__status">{{ audioStatus }}</div>
     </div>
+</div>
+</ng-container>
+
+<div *ngIf="isReadOnly" class="viewer-audio">
+    <button class="viewer-audio__button" type="button" (click)="enableAudioPlayback()">Enable audio</button>
+    <span class="viewer-audio__status">{{ audioStatus }}</span>
 </div>

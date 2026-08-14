@@ -1,10 +1,10 @@
 <div [ngClass]="{ 'dimmer-low': dimmer === 1, 'dimmer-middle': dimmer === 2, 'dimmer-high': dimmer === 3 }">
     <div class="led" [ngClass]="led"></div>
     <div (click)="onDisplayPress()" (dblclick)="toggleFullscreen()">
-        <div *ngIf="!powerOn" class="display">
+        <div *ngIf="!powerOn && !readOnly" class="display">
             <span class="large">Press PWR or Touch Screen</span>
         </div>
-        <div *ngIf="powerOn" class="display">
+        <div *ngIf="powerOn || readOnly" class="display">
             <div *ngIf="display.length === 0" class="large">Waiting for scanner</div>
             <div *ngFor="let line of display; index as i" [ngClass]="{ large: line.size === 1, small: line.size === 0}">
                 <span *ngFor="let char of line.text; index as j"
@@ -12,7 +12,7 @@
             </div>
         </div>
     </div>
-    <div class="control flex-col">
+    <div *ngIf="!readOnly" class="control flex-col">
         <div class="button-group style-1 flex-row">
             <div class="flex flex-25 col">
                 <div class="button-wrapper flex-50 flex-col">

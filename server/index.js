@@ -72,6 +72,16 @@ export class App extends EventEmitter {
             sslKey: typeof nodejs.sslKey === 'string' && nodejs.sslKey.length ? nodejs.sslKey : 'server.key',
         };
 
+        const viewer = nodejs.viewer || {};
+
+        this.config.nodejs.viewer = {
+            enabled: typeof viewer.enabled === 'boolean'
+                ? viewer.enabled
+                : (process.env.NODE_VIEWER_ENABLED || 'true').toLowerCase() !== 'false',
+            host: typeof viewer.host === 'string' && viewer.host.length ? viewer.host : this.config.nodejs.host,
+            port: typeof viewer.port === 'number' ? viewer.port : parseInt(process.env.NODE_VIEWER_PORT, 10) || 3001,
+        };
+
         const sslCaCert = path.resolve(process.env.APP_DATA || dirname, this.config.nodejs.sslCa);
         const sslServerCert = path.resolve(process.env.APP_DATA || dirname, this.config.nodejs.sslCert);
         const sslServerKey = path.resolve(process.env.APP_DATA || dirname, this.config.nodejs.sslKey);
@@ -134,6 +144,37 @@ export class App extends EventEmitter {
         });
         this.router.set(this.config.nodejs.port);
 
+        if (this.config.nodejs.viewer.enabled) {
+            this.viewerRouter = express();
+            this.viewerRouter.disable('x-powered-by');
+            this.viewerRouter.use(compression());
+            this.viewerRouter.use(express.json());
+            this.viewerRouter.use(helmet({ contentSecurityPolicy: false }));
+            this.viewerRouter.use((req, res, next) => {
+                if (req.path === '/' || req.path === '/index.html') {
+                    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+                    res.setHeader('Pragma', 'no-cache');
+                    res.setHeader('Expires', '0');
+                }
+
+                next();
+            });
+            this.viewerRouter.use(express.static(staticDir));
+            this.viewerRouter.use((req, res, next) => {
+                if (['/', '/index.html'].includes(req.path)) {
+                    if (fs.existsSync(path.join(staticDir, staticFile))) {
+                        return res.sendFile(staticFile, { root: staticDir });
+
+                    } else {
+                        return res.send('A new build is being prepared. Please check back in a few minutes.');
+                    }
+
+                } else {
+                    return next();
+                }
+            });
+        }
+
         if (
             this.config.nodejs.env !== 'development' && this.config.nodejs.ssl === true &&
             fs.existsSync(sslServerCert) && fs.existsSync(sslServerKey)
@@ -153,6 +194,24 @@ export class App extends EventEmitter {
             this.httpServer = http.createServer(this.router);
         }
 
+        if (this.viewerRouter) {
+            if (this.httpServer instanceof https.Server) {
+                const options = {
+                    cert: fs.readFileSync(sslServerCert),
+                    key: fs.readFileSync(sslServerKey),
+                };
+
+                if (fs.existsSync(this.config.nodejs.sslCA)) {
+                    options.ca = fs.readFileSync(sslCaCert);
+                }
+
+                this.viewerHttpServer = https.createServer(options, this.viewerRouter);
+
+            } else {
+                this.viewerHttpServer = http.createServer(this.viewerRouter);
+            }
+        }
+
         this.once('ready', () => this.saveConfig());
 
         this.rcScanner = new RcScanner(this);
@@ -167,6 +226,15 @@ export class App extends EventEmitter {
 
                 console.log(`Server is running at ${this.url}`);
             });
+
+            if (this.viewerHttpServer) {
+                this.viewerHttpServer.listen(this.config.nodejs.viewer.port, this.config.nodejs.viewer.host, () => {
+                    const scheme = this.viewerHttpServer instanceof https.Server ? 'https' : 'http';
+                    const viewerUrl = `${scheme}://${this.config.nodejs.viewer.host}:${this.config.nodejs.viewer.port}`;
+
+                    console.log(`View-only server running at ${viewerUrl}`);
+                });
+            }
 
             this.emit('ready');
         });

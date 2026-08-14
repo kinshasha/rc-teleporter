@@ -39,6 +39,8 @@ export class AppRcScannerComponent implements OnDestroy {
 
     audioPanelOpen = false;
 
+    isReadOnly = false;
+
     model: string = 'unknown';
 
     screenWakeLockActive = false;
@@ -58,6 +60,14 @@ export class AppRcScannerComponent implements OnDestroy {
         this.subscription.add(this.rcScannerService.config.subscribe((config: AppRcScannerConfig) => {
             this.model = config.model || 'unknown';
             this.audioDeviceId = typeof config.audioDeviceId === 'number' ? config.audioDeviceId : -1;
+            this.isReadOnly = config.viewOnly === true;
+
+            if (this.isReadOnly) {
+                this.audioStatus = 'Tap Enable Audio to listen.';
+
+            } else {
+                this.loadAudioDevices();
+            }
         }));
 
         this.subscription.add(this.rcScannerService.audioStatus.subscribe((status: string) => {
@@ -66,11 +76,14 @@ export class AppRcScannerComponent implements OnDestroy {
 
         rcScannerService.rootElement = ngElementRef.nativeElement;
 
-        this.loadAudioDevices();
     }
 
     @HostListener('window:beforeunload', ['$event'])
     exitNotification(event: BeforeUnloadEvent): void {
+        if (this.isReadOnly) {
+            return;
+        }
+
         event.preventDefault();
 
         event.returnValue = 'Do you really want to leave?';

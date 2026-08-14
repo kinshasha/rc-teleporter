@@ -43,6 +43,8 @@ export class AppRcScannerBcd436hpComponent implements OnDestroy, OnInit {
 
     powerOn = false;
 
+    readonly readOnly: boolean;
+
     readonly display: Display[] = [];
 
     private unknownGlyphs: string[] = [];
@@ -52,7 +54,9 @@ export class AppRcScannerBcd436hpComponent implements OnDestroy, OnInit {
     constructor(
         private ngChangeDetectorReg: ChangeDetectorRef,
         private rcScannerService: AppRcScannerService,
-    ) { }
+    ) {
+        this.readOnly = rcScannerService.readOnly;
+    }
 
     ngOnDestroy(): void {
         if (this.subscription instanceof Subscription) {
@@ -86,6 +90,10 @@ export class AppRcScannerBcd436hpComponent implements OnDestroy, OnInit {
     }
 
     onDisplayPress(): void {
+        if (this.readOnly) {
+            return;
+        }
+
         if (!this.powerOn) {
             this.onLightPower();
         }
@@ -178,6 +186,10 @@ export class AppRcScannerBcd436hpComponent implements OnDestroy, OnInit {
 
     @HostListener('document:keydown.l')
     onLightPower(): void {
+        if (this.readOnly) {
+            return;
+        }
+
         if (this.powerOn) {
             this.rcScannerService.send('KEY,V,P');
 

@@ -34,6 +34,7 @@ export interface AppRcScannerConfig {
     model: string;
     reconnectInterval: number;
     sampleRate: number;
+    viewOnly?: boolean;
 }
 
 export interface AppRcScannerAudioDevice {
@@ -56,6 +57,8 @@ export interface AppRcScannerMessage {
 })
 export class AppRcScannerService implements OnDestroy {
     rootElement: HTMLElement = this.document.documentElement;
+
+    readOnly = false;
 
     readonly config = new EventEmitter<AppRcScannerConfig>();
 
@@ -89,14 +92,14 @@ export class AppRcScannerService implements OnDestroy {
 
     private wsControl: WebSocket | undefined;
 
+    private wsViewer: WebSocket | undefined;
+
     constructor(
         @Inject(DOCUMENT) private document: Document,
         private httpClient: HttpClient,
         private title: Title,
     ) {
         this.bootstrapAudio();
-
-        this.bootstrapControl();
 
         this.getConfig();
     }
@@ -118,9 +121,13 @@ export class AppRcScannerService implements OnDestroy {
         if (!this.isPowerOn) {
             this.isPowerOn = true;
 
-            this.openControlWebSocket();
+            if (this.readOnly) {
+                this.openViewerWebSocket();
 
-            this.startControlStatusFallback();
+            } else {
+                this.openControlWebSocket();
+                this.startControlStatusFallback();
+            }
         }
     }
 
@@ -152,10 +159,16 @@ export class AppRcScannerService implements OnDestroy {
             this.wsControl.close();
         }
 
+        this.closeViewerWebSocket();
+
         this.stopControlStatusFallback();
     }
 
     send(message: string): void {
+        if (this.readOnly) {
+            return;
+        }
+
         if (this.wsControl && this.wsControl.readyState === 1) {
             this.wsControl.send(message);
         }
@@ -270,15 +283,36 @@ export class AppRcScannerService implements OnDestroy {
         }
     }
 
+    private closeViewerWebSocket(): void {
+        if (this.wsViewer instanceof WebSocket) {
+            this.wsViewer.onclose = null;
+            this.wsViewer.onerror = null;
+            this.wsViewer.onopen = null;
+
+            this.wsViewer.close();
+
+            this.wsViewer = undefined;
+        }
+    }
+
     private getConfig(): void {
         const url = this.getUrl('config');
 
         this.httpClient.get<AppRcScannerConfig>(url).subscribe((config) => {
             this.scannerConfig = config;
+            this.readOnly = config.viewOnly === true;
 
             this.title.setTitle(`${this.title.getTitle()} ↔ ${this.scannerConfig.model.toUpperCase()}`);
 
             this.config.emit(config);
+
+            if (this.readOnly) {
+                this.isPowerOn = true;
+                this.openViewerWebSocket();
+
+            } else {
+                this.bootstrapControl();
+            }
         });
     }
 
@@ -515,6 +549,35 @@ export class AppRcScannerService implements OnDestroy {
         };
     }
 
+    private openViewerWebSocket(): void {
+        if (!this.readOnly || this.wsViewer instanceof WebSocket) {
+            return;
+        }
+
+        const url = this.getUrl('display', { ws: true });
+
+        this.wsViewer = new WebSocket(url);
+
+        this.wsViewer.onclose = (ev: CloseEvent) => {
+            this.wsViewer = undefined;
+            this.message.emit({ close: true });
+
+            if (ev.code !== 1000 && this.isPowerOn) {
+                this.reconnectViewer();
+            }
+        };
+
+        this.wsViewer.onerror = (ev: Event) => this.message.emit({ error: ev });
+
+        this.wsViewer.onopen = () => {
+            if (this.wsViewer instanceof WebSocket) {
+                this.message.emit({ ready: true });
+
+                this.wsViewer.onmessage = (ev: MessageEvent) => this.message.emit({ data: ev.data });
+            }
+        };
+    }
+
     private startControlStatusFallback(): void {
         if (this.controlStatusTimer !== undefined) {
             return;
@@ -548,5 +611,11 @@ export class AppRcScannerService implements OnDestroy {
         this.closeControlWebSocket();
 
         timer(this.scannerConfig?.reconnectInterval || 2000).subscribe(() => this.openControlWebSocket());
+    }
+
+    private reconnectViewer(): void {
+        this.closeViewerWebSocket();
+
+        timer(this.scannerConfig?.reconnectInterval || 2000).subscribe(() => this.openViewerWebSocket());
     }
 }
