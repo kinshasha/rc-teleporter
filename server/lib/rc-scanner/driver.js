@@ -20,9 +20,10 @@
 'use strict';
 
 import { UnidenSts } from './drivers/uniden-sts.js';
+import { IcomPcr1000 } from './drivers/icom-pcr1000.js';
 import { Unknown } from './drivers/unknown.js';
 
-import { models, unknown, unidenSts } from './models.js';
+import { icomPcr1000, models, unknown, unidenSts } from './models.js';
 
 export class Driver {
     constructor(ctx) {
@@ -31,6 +32,10 @@ export class Driver {
         if (model !== null) {
             if (model.driver === unidenSts) {
                 return new UnidenSts(ctx);
+            }
+
+            if (model.driver === icomPcr1000) {
+                return new IcomPcr1000(ctx);
             }
 
         } else {

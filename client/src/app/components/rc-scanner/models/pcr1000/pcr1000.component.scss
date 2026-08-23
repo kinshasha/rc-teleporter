@@ -1,0 +1,31 @@
+:host { display: block; min-height: 100%; }
+
+.pcr-console { --ink: #e5e4d4; --paper: #c7c5ae; --accent: #e85c32; --dark: #14201d; background: radial-gradient(circle at 15% 0%, #29413b, #14201d 50%, #0a100e); box-sizing: border-box; color: var(--ink); font-family: "Trebuchet MS", "Gill Sans", sans-serif; min-height: 100vh; padding: clamp(18px, 4vw, 52px); }
+.pcr-console__masthead { align-items: flex-start; border-bottom: 1px solid rgba(229, 228, 212, .3); display: flex; justify-content: space-between; padding-bottom: 18px; }
+.pcr-console h1 { font-family: Georgia, serif; font-size: clamp(28px, 6vw, 54px); font-weight: 400; letter-spacing: -.05em; margin: 0; }
+.pcr-console__eyebrow, .pcr-console__status { font-size: 10px; font-weight: 700; letter-spacing: .16em; margin: 0 0 7px; text-transform: uppercase; }
+.pcr-console__power { background: transparent; border: 1px solid rgba(229, 228, 212, .36); border-radius: 999px; color: var(--ink); font: inherit; font-size: 11px; letter-spacing: .08em; padding: 9px 12px; text-transform: uppercase; }
+.pcr-console__power.is-on { border-color: #b5e26a; color: #d2f48e; }
+.pcr-console__readout { background: var(--paper); box-shadow: 0 16px 40px rgba(0,0,0,.28), inset 0 0 0 2px #e6e4cc, inset 0 0 0 4px #625f52; color: #15231d; cursor: pointer; margin: 28px 0; padding: clamp(18px, 5vw, 36px); }
+.pcr-console__frequency { font-family: "Courier New", monospace; font-size: clamp(33px, 10vw, 94px); font-weight: 700; letter-spacing: -.07em; line-height: 1; overflow-wrap: anywhere; }
+.pcr-console__details { border-top: 1px solid #777567; display: flex; font: 700 11px/1.3 "Courier New", monospace; gap: 18px; letter-spacing: .08em; margin-top: 16px; padding-top: 9px; }
+.pcr-console__controls { display: grid; gap: 20px; grid-template-columns: repeat(2, minmax(0, 1fr)); position: relative; }
+.pcr-console__tune { display: grid; gap: 8px; grid-column: 1 / -1; grid-template-columns: auto 1fr auto; }
+.pcr-console label, .pcr-console__section > span { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.pcr-console input { background: #0b1210; border: 1px solid #65736d; color: var(--ink); font: 600 17px "Courier New", monospace; min-width: 0; padding: 9px; }
+.pcr-console button { cursor: pointer; }
+.pcr-console__controls button { background: #20332e; border: 1px solid #63736c; color: var(--ink); font: 700 11px "Trebuchet MS", sans-serif; letter-spacing: .06em; min-height: 38px; padding: 8px; text-transform: uppercase; }
+.pcr-console__controls button.is-selected { background: var(--accent); border-color: #ffb59f; color: #19130f; }
+.pcr-console__section { display: grid; gap: 8px; }
+.pcr-console__buttons, .pcr-console__switches { display: flex; flex-wrap: wrap; gap: 7px; }
+.pcr-console__buttons button { flex: 1 0 44px; }
+.pcr-console__sliders { display: grid; gap: 16px; grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.pcr-console__sliders label { display: grid; gap: 5px; grid-template-columns: 1fr auto; }
+.pcr-console__sliders input { accent-color: var(--accent); grid-column: 1 / -1; padding: 0; }
+.pcr-console__sliders output { font-family: "Courier New", monospace; }
+.pcr-console__switches { grid-column: 1 / -1; }
+.pcr-console__switches button { flex: 1 1 110px; }
+.pcr-console__note { color: #aeb7a9; font-size: 12px; margin: 30px 0 0; }
+.pcr-console__controls.read-only-control { filter: grayscale(1); opacity: .48; }
+.pcr-console__controls.read-only-control::after { align-items: center; background: rgba(5, 10, 8, .5); border: 1px solid rgba(229,228,212,.3); content: "LISTEN ONLY"; display: flex; font-size: 11px; font-weight: 700; inset: 0; justify-content: center; letter-spacing: .18em; pointer-events: auto; position: absolute; z-index: 2; }
+@media (max-width: 620px) { .pcr-console__masthead { gap: 12px; } .pcr-console__power span:last-child { display: none; } .pcr-console__controls, .pcr-console__sliders { grid-template-columns: 1fr; } .pcr-console__tune { grid-template-columns: 1fr auto; } .pcr-console__tune label { grid-column: 1 / -1; } .pcr-console__details { gap: 9px; } }

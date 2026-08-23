@@ -29,7 +29,7 @@ export class Com extends EventEmitter {
 
         this.config = ctx.config.com;
 
-        this.readLine = new ReadlineParser({ delimiter: '\r', encoding: 'binary' });
+        this.readLine = new ReadlineParser({ delimiter: this.config.terminator, encoding: 'binary' });
 
         this.open();
     }
@@ -138,6 +138,8 @@ export class Com extends EventEmitter {
     }
 
     write(data) {
-        this.serialPort.write(`${data}\r`);
+        if (this.serialPort?.isOpen) {
+            this.serialPort.write(`${data}${this.config.terminator}`);
+        }
     }
 }

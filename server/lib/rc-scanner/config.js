@@ -71,12 +71,15 @@ export class Config {
             reconnectInterval: typeof config?.com?.reconnectInterval === 'number'
                 ? config.com.reconnectInterval
                 : parseInt(process.env.RC_RECONNECT_INTERVAL, 10) || 5000,
-            rtscts: (config?.com?.rtscts || '').toLowerCase() === 'true'
+            rtscts: String(config?.com?.rtscts || '').toLowerCase() === 'true'
                 ? true
                 : (process.env.RC_COM_RTSCTS || '').toLowerCase() === 'true' ? true : false,
             stopBits: typeof config?.com?.stopBits === 'number'
                 ? config.com.stopBits
                 : parseInt(process.env.RC_COM_STOPBITS, 10) || 1,
+            terminator: typeof config?.com?.terminator === 'string'
+                ? config.com.terminator
+                : process.env.RC_COM_TERMINATOR || '\r',
         };
 
         this.hideSerialNumber = typeof config?.hideSerialNumber === 'boolean'
