@@ -162,6 +162,7 @@ export class Config {
             }
 
             const clientAddress = getClientAddress(req);
+            const connectedAt = Date.now();
 
             this.activeFallbackStreams++;
             logFallback(`[audio 3000] MP3 fallback connected from ${clientAddress} (${this.activeFallbackStreams} active)`);
@@ -200,7 +201,7 @@ export class Config {
                 encoder.stdin.end();
                 encoder.kill();
                 this.activeFallbackStreams = Math.max(0, this.activeFallbackStreams - 1);
-                logEvent(`[audio 3000] MP3 fallback disconnected from ${clientAddress} (${this.activeFallbackStreams} active)`);
+                logEvent(`[audio 3000] MP3 fallback disconnected from ${clientAddress} after ${formatElapsed(Date.now() - connectedAt)} (${this.activeFallbackStreams} active)`);
             };
 
             req.on('close', close);
@@ -318,6 +319,7 @@ export class Config {
             const source = new wrtc.nonstandard.RTCAudioSource();
             const track = source.createTrack();
             let closed = false;
+            let connectedAt = 0;
             let streamTracked = false;
             let viewerSessionId;
             let viewerStreamTracked = false;
@@ -340,7 +342,7 @@ export class Config {
 
                 if (streamTracked) {
                     this.activeWebRtcStreams = Math.max(0, this.activeWebRtcStreams - 1);
-                    logEvent(`[audio ${port}] WebRTC disconnected from ${clientAddress} (${this.activeWebRtcStreams} active)`);
+                    logEvent(`[audio ${port}] WebRTC disconnected from ${clientAddress} after ${formatElapsed(Date.now() - connectedAt)} (${this.activeWebRtcStreams} active)`);
                 }
 
                 if (viewerStreamTracked) {
@@ -369,6 +371,7 @@ export class Config {
                 await waitForIceGathering(peer);
 
                 streamTracked = true;
+                connectedAt = Date.now();
                 this.activeWebRtcStreams++;
                 logEvent(`[audio ${port}] WebRTC connected from ${clientAddress} (${this.activeWebRtcStreams} active)`);
 
@@ -498,6 +501,10 @@ function getClientAddress(req) {
 
 function logEvent(message, warning = false) {
     console[warning ? 'warn' : 'log'](`${new Date().toISOString()} ${message}`);
+}
+
+function formatElapsed(elapsedMilliseconds) {
+    return `${Math.max(0, Math.round(elapsedMilliseconds / 1000))} s`;
 }
 
 function logFallback(message) {

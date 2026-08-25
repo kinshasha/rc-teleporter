@@ -38,7 +38,10 @@ export class Ws extends EventEmitter {
         this.audioSocket = new WebSocket.Server({ noServer: true });
 
         this.audioSocket.on('connection', (ws, req) => {
-            logEvent(`[audio 3000] raw PCM connected from ${getClientAddress(req)}`);
+            const clientAddress = getClientAddress(req);
+            const connectedAt = Date.now();
+
+            logEvent(`[audio 3000] raw PCM connected from ${clientAddress}`);
 
             const audioHandler = (data) => ws.send(data);
 
@@ -48,7 +51,7 @@ export class Ws extends EventEmitter {
 
             ws.on('close', () => {
                 this.audio.removeListener('data', audioHandler);
-                logEvent(`[audio 3000] raw PCM disconnected from ${getClientAddress(req)}`);
+                logEvent(`[audio 3000] raw PCM disconnected from ${clientAddress} after ${formatElapsed(Date.now() - connectedAt)}`);
             });
 
             ws.on('pong', () => ws.isAlive = true);
@@ -61,7 +64,10 @@ export class Ws extends EventEmitter {
         this.controlSocket = new WebSocket.Server({ noServer: true });
 
         this.controlSocket.on('connection', (ws, req) => {
-            logEvent(`[web 3000] control connected from ${getClientAddress(req)}`);
+            const clientAddress = getClientAddress(req);
+            const connectedAt = Date.now();
+
+            logEvent(`[web 3000] control connected from ${clientAddress}`);
 
             let previousData;
 
@@ -77,7 +83,10 @@ export class Ws extends EventEmitter {
 
             ws.isAlive = true;
 
-            ws.on('close', () => this.removeObserver(driverHandler));
+            ws.on('close', () => {
+                this.removeObserver(driverHandler);
+                logEvent(`[web 3000] control disconnected from ${clientAddress} after ${formatElapsed(Date.now() - connectedAt)}`);
+            });
 
             ws.on('message', (message) => this.driver.write(message));
 
@@ -91,7 +100,10 @@ export class Ws extends EventEmitter {
         this.viewerStreamCount = 0;
 
         this.viewerSocket.on('connection', (ws, req) => {
-            logEvent(`[web 3001] display connected from ${getClientAddress(req)}`);
+            const clientAddress = getClientAddress(req);
+            const connectedAt = Date.now();
+
+            logEvent(`[web 3001] display connected from ${clientAddress}`);
 
             let previousData;
             let lastViewerCommandAt = 0;
@@ -126,7 +138,10 @@ export class Ws extends EventEmitter {
                 lastViewerCommandAt = now;
                 this.driver.write(VIEWER_VFO_PUSH);
             });
-            ws.on('close', () => this.removeObserver(driverHandler));
+            ws.on('close', () => {
+                this.removeObserver(driverHandler);
+                logEvent(`[web 3001] display disconnected from ${clientAddress} after ${formatElapsed(Date.now() - connectedAt)}`);
+            });
             ws.on('pong', () => ws.isAlive = true);
         });
 
@@ -247,4 +262,8 @@ function getClientAddress(req) {
 
 function logEvent(message) {
     console.log(`${new Date().toISOString()} ${message}`);
+}
+
+function formatElapsed(elapsedMilliseconds) {
+    return `${Math.max(0, Math.round(elapsedMilliseconds / 1000))} s`;
 }
