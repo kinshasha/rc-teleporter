@@ -428,8 +428,8 @@ function waitForIceGathering(peer) {
 }
 
 async function getTurnIceServers() {
-    const keyId = process.env.CF_TURN_KEY_ID;
-    const apiToken = process.env.CF_TURN_API_TOKEN;
+    const keyId = getEnvSecret('CF_TURN_KEY_ID');
+    const apiToken = getEnvSecret('CF_TURN_API_TOKEN');
 
     if (!keyId || !apiToken) {
         return [];
@@ -461,6 +461,10 @@ async function getTurnIceServers() {
                 : server.urls,
         }))
         : [];
+}
+
+function getEnvSecret(name) {
+    return (process.env[name] || '').trim().replace(/^['"]+|['"]+$/g, '');
 }
 
 async function getIceServers() {
