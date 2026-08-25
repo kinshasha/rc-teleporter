@@ -169,20 +169,6 @@ export class AppRcScannerComponent implements OnDestroy {
             .catch(() => this.audioStatus = 'Safari could not play the test tone.');
     }
 
-    toggleInjectedAudio(): void {
-        const enabled = !this.injectedAudioEnabled;
-
-        this.subscription.add(this.rcScannerService.setInjectedAudioEnabled(enabled).subscribe({
-            next: (status) => {
-                this.injectedAudioEnabled = status.enabled === true;
-                this.injectedAudioActive = status.active === true;
-            },
-            error: () => {
-                this.audioStatus = 'Unable to change additional audio.';
-            },
-        }));
-    }
-
     toggleAudioPanel(): void {
         this.audioPanelOpen = !this.audioPanelOpen;
 

@@ -41,6 +41,12 @@ export class AppRcScannerBcd436hpComponent implements OnDestroy, OnInit {
 
     led = 'OFF';
 
+    injectedAudioActive = false;
+
+    injectedAudioEnabled = false;
+
+    injectedAudioLabel = '';
+
     powerOn = false;
 
     readonly readOnly: boolean;
@@ -56,6 +62,12 @@ export class AppRcScannerBcd436hpComponent implements OnDestroy, OnInit {
         private rcScannerService: AppRcScannerService,
     ) {
         this.readOnly = rcScannerService.readOnly;
+
+        const config = rcScannerService.getCurrentConfig();
+
+        this.injectedAudioLabel = config?.injectedAudioLabel || '';
+        this.injectedAudioEnabled = config?.injectedAudioEnabled === true;
+        this.injectedAudioActive = config?.injectedAudioActive === true;
     }
 
     ngOnDestroy(): void {
@@ -67,10 +79,40 @@ export class AppRcScannerBcd436hpComponent implements OnDestroy, OnInit {
     }
 
     ngOnInit(): void {
-        this.subscription = this.rcScannerService.message.subscribe((message: AppRcScannerMessage) => {
+        this.subscription = new Subscription();
+        this.subscription.add(this.rcScannerService.message.subscribe((message: AppRcScannerMessage) => {
             if (typeof message.data === 'string') {
                 this.parseData(message.data);
             }
+        }));
+
+        this.subscription.add(this.rcScannerService.config.subscribe((config) => {
+            this.injectedAudioLabel = config.injectedAudioLabel || '';
+            this.injectedAudioEnabled = config.injectedAudioEnabled === true;
+            this.ngChangeDetectorReg.markForCheck();
+        }));
+
+        this.subscription.add(this.rcScannerService.injectedAudioActive.subscribe((active) => {
+            this.injectedAudioActive = active;
+            this.ngChangeDetectorReg.markForCheck();
+        }));
+
+        this.subscription.add(this.rcScannerService.injectedAudioEnabled.subscribe((enabled) => {
+            this.injectedAudioEnabled = enabled;
+            this.ngChangeDetectorReg.markForCheck();
+        }));
+    }
+
+    toggleInjectedAudio(): void {
+        const enabled = !this.injectedAudioEnabled;
+
+        this.rcScannerService.setInjectedAudioEnabled(enabled).subscribe({
+            next: (status) => {
+                this.injectedAudioEnabled = status.enabled === true;
+                this.injectedAudioActive = status.active === true;
+                this.ngChangeDetectorReg.markForCheck();
+            },
+            error: () => undefined,
         });
     }
 

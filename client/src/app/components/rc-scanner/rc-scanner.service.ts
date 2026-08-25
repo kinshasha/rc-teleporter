@@ -368,6 +368,10 @@ export class AppRcScannerService implements OnDestroy {
         return this.httpClient.post<{ active: boolean; enabled: boolean }>(this.getUrl('audio/injected-status'), { enabled });
     }
 
+    getCurrentConfig(): AppRcScannerConfig | undefined {
+        return this.scannerConfig;
+    }
+
     private getUrl(path: string, options: { ws?: boolean } = {}): string {
         const url = new URL(path.replace(/^\//, ''), `${window.location.origin}/`);
 

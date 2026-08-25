@@ -215,9 +215,24 @@ $led-yellow: #e6e632;
 
 .led {
   background-color: $led-black;
+  border: 0;
   height: 12px;
   margin-left: auto;
+  padding: 0;
   width: 24px;
+
+  &.audio-toggle {
+    cursor: pointer;
+  }
+
+  &.audio-enabled {
+    outline: 2px solid $led-yellow;
+    outline-offset: 3px;
+  }
+
+  &.audio-active {
+    outline-color: $led-green;
+  }
 
   &.blue {
     background-color: $led-blue;
