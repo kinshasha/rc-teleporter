@@ -164,7 +164,7 @@ export class Config {
             const clientAddress = getClientAddress(req);
 
             this.activeFallbackStreams++;
-            console.log(`[audio 3000] MP3 fallback connected from ${clientAddress} (${this.activeFallbackStreams} active)`);
+            logEvent(`[audio 3000] MP3 fallback connected from ${clientAddress} (${this.activeFallbackStreams} active)`);
 
             const encoder = spawn('ffmpeg', [
                 '-hide_banner', '-loglevel', 'error',
@@ -200,7 +200,7 @@ export class Config {
                 encoder.stdin.end();
                 encoder.kill();
                 this.activeFallbackStreams = Math.max(0, this.activeFallbackStreams - 1);
-                console.log(`[audio 3000] MP3 fallback disconnected from ${clientAddress} (${this.activeFallbackStreams} active)`);
+                logEvent(`[audio 3000] MP3 fallback disconnected from ${clientAddress} (${this.activeFallbackStreams} active)`);
             };
 
             req.on('close', close);
@@ -340,7 +340,7 @@ export class Config {
 
                 if (streamTracked) {
                     this.activeWebRtcStreams = Math.max(0, this.activeWebRtcStreams - 1);
-                    console.log(`[audio ${port}] WebRTC disconnected from ${clientAddress} (${this.activeWebRtcStreams} active)`);
+                    logEvent(`[audio ${port}] WebRTC disconnected from ${clientAddress} (${this.activeWebRtcStreams} active)`);
                 }
 
                 if (viewerStreamTracked) {
@@ -370,7 +370,7 @@ export class Config {
 
                 streamTracked = true;
                 this.activeWebRtcStreams++;
-                console.log(`[audio ${port}] WebRTC connected from ${clientAddress} (${this.activeWebRtcStreams} active)`);
+                logEvent(`[audio ${port}] WebRTC connected from ${clientAddress} (${this.activeWebRtcStreams} active)`);
 
                 if (viewOnly && !viewerStreamTracked) {
                     viewerStreamTracked = true;
@@ -387,7 +387,7 @@ export class Config {
 
             } catch (error) {
                 close();
-                console.warn(`[audio ${port}] WebRTC failed for ${clientAddress}: ${error.message || 'unknown error'}`);
+                logEvent(`[audio ${port}] WebRTC failed for ${clientAddress}: ${error.message || 'unknown error'}`, true);
                 return res.status(500).send({ error: error.message || 'Unable to establish WebRTC audio' });
             }
         });
@@ -496,12 +496,16 @@ function getClientAddress(req) {
     return address || req.socket?.remoteAddress || 'unknown';
 }
 
+function logEvent(message, warning = false) {
+    console[warning ? 'warn' : 'log'](`${new Date().toISOString()} ${message}`);
+}
+
 async function getIceServers() {
     try {
         return await getTurnIceServers();
     } catch (error) {
         // Keep local WebRTC working if the optional external TURN key is stale.
-        console.warn(`Cloudflare TURN unavailable; using direct WebRTC: ${error.message}`);
+        logEvent(`Cloudflare TURN unavailable; using direct WebRTC: ${error.message}`, true);
         return [{ urls: 'stun:stun.cloudflare.com:3478' }];
     }
 }

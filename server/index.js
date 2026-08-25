@@ -264,7 +264,7 @@ export const app = new App();
 function createBrowserConnectionLogger(port) {
     return (req, res, next) => {
         if (req.method === 'GET' && (req.path === '/' || req.path === '/index.html')) {
-            console.log(`[web ${port}] browser opened from ${getClientAddress(req)}`);
+            console.log(`${eventTimestamp()} [web ${port}] browser opened from ${getClientAddress(req)}`);
         }
 
         next();
@@ -276,4 +276,8 @@ function getClientAddress(req) {
     const address = Array.isArray(forwarded) ? forwarded[0] : String(forwarded || '').split(',')[0].trim();
 
     return address || req.socket?.remoteAddress || 'unknown';
+}
+
+function eventTimestamp() {
+    return new Date().toISOString();
 }

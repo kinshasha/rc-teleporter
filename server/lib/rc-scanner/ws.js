@@ -38,7 +38,7 @@ export class Ws extends EventEmitter {
         this.audioSocket = new WebSocket.Server({ noServer: true });
 
         this.audioSocket.on('connection', (ws, req) => {
-            console.log(`[audio 3000] raw PCM connected from ${getClientAddress(req)}`);
+            logEvent(`[audio 3000] raw PCM connected from ${getClientAddress(req)}`);
 
             const audioHandler = (data) => ws.send(data);
 
@@ -48,7 +48,7 @@ export class Ws extends EventEmitter {
 
             ws.on('close', () => {
                 this.audio.removeListener('data', audioHandler);
-                console.log(`[audio 3000] raw PCM disconnected from ${getClientAddress(req)}`);
+                logEvent(`[audio 3000] raw PCM disconnected from ${getClientAddress(req)}`);
             });
 
             ws.on('pong', () => ws.isAlive = true);
@@ -61,7 +61,7 @@ export class Ws extends EventEmitter {
         this.controlSocket = new WebSocket.Server({ noServer: true });
 
         this.controlSocket.on('connection', (ws, req) => {
-            console.log(`[web 3000] control connected from ${getClientAddress(req)}`);
+            logEvent(`[web 3000] control connected from ${getClientAddress(req)}`);
 
             let previousData;
 
@@ -91,7 +91,7 @@ export class Ws extends EventEmitter {
         this.viewerStreamCount = 0;
 
         this.viewerSocket.on('connection', (ws, req) => {
-            console.log(`[web 3001] display connected from ${getClientAddress(req)}`);
+            logEvent(`[web 3001] display connected from ${getClientAddress(req)}`);
 
             let previousData;
             let lastViewerCommandAt = 0;
@@ -243,4 +243,8 @@ function getClientAddress(req) {
     const address = Array.isArray(forwarded) ? forwarded[0] : String(forwarded || '').split(',')[0].trim();
 
     return address || req.socket?.remoteAddress || 'unknown';
+}
+
+function logEvent(message) {
+    console.log(`${new Date().toISOString()} ${message}`);
 }
