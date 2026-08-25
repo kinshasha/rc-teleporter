@@ -15,7 +15,7 @@
 </button>
 
 <div class="audio-drawer" [class.is-open]="audioPanelOpen">
-    <button class="audio-drawer__toggle" type="button" [class.is-open]="audioPanelOpen" [class.is-fallback]="audioFallbackActive"
+    <button class="audio-drawer__toggle" type="button" [class.is-open]="audioPanelOpen" [class.is-fallback]="audioFallbackVisible"
         [attr.aria-label]="audioPanelOpen ? 'Close audio settings' : 'Audio settings'" [attr.aria-expanded]="audioPanelOpen"
         (click)="toggleAudioPanel()">
         <span *ngIf="!audioPanelOpen" class="audio-drawer__toggle-icon" aria-hidden="true">⚙</span>
@@ -44,6 +44,9 @@
 
             <button class="audio-drawer__button" type="button" (click)="enableAudioPlayback()">Enable iPhone playback</button>
             <button class="audio-drawer__button" type="button" (click)="playAudioTestTone()">Test iPhone speaker</button>
+            <button class="audio-drawer__button" type="button" (click)="toggleAudioFallbackTest()">
+                {{ audioFallbackTestActive ? 'Clear fallback warning' : 'Test fallback warning' }}
+            </button>
             <button class="audio-drawer__button" type="button" (click)="refreshAudioDevices()">Refresh</button>
         </div>
 
@@ -52,7 +55,7 @@
 </div>
 </ng-container>
 
-<div *ngIf="audioFallbackActive" class="audio-fallback-warning" role="status">
+<div *ngIf="audioFallbackVisible" class="audio-fallback-warning" role="status">
     <span aria-hidden="true">●</span> Buffered audio fallback
 </div>
 

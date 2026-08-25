@@ -39,6 +39,8 @@ export class AppRcScannerComponent implements OnDestroy {
 
     audioFallbackActive = false;
 
+    audioFallbackTestActive = false;
+
     audioPanelOpen = false;
 
     isReadOnly = false;
@@ -164,6 +166,14 @@ export class AppRcScannerComponent implements OnDestroy {
         if (this.audioPanelOpen) {
             this.loadAudioDevices();
         }
+    }
+
+    toggleAudioFallbackTest(): void {
+        this.audioFallbackTestActive = !this.audioFallbackTestActive;
+    }
+
+    get audioFallbackVisible(): boolean {
+        return this.audioFallbackActive || this.audioFallbackTestActive;
     }
 
     async toggleScreenWakeLock(): Promise<void> {
