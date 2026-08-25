@@ -266,6 +266,11 @@ $led-yellow: #e6e632;
     box-shadow: 0 0 6px 3px $led-yellow;
   }
 
+  &.audio-disabled {
+    background-color: $led-black;
+    box-shadow: none;
+  }
+
   &.audio-active {
     background-color: $led-green;
     box-shadow: 0 0 6px 3px $led-green;
