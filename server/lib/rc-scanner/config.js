@@ -143,6 +143,8 @@ export class Config {
                 return res.status(409).send({ error: 'Additional audio is not configured' });
             }
 
+            logEvent(`[audio 3000] additional audio ${enabled ? 'enabled' : 'disabled'} by ${getClientAddress(req)}`);
+
             return res.send({
                 active: Boolean(app.rcScanner.audio.injectedMixerActive),
                 enabled: this.audio.injectedStream.enabled,
