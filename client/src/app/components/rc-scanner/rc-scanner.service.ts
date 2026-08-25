@@ -324,6 +324,9 @@ export class AppRcScannerService implements OnDestroy {
 
             } else {
                 this.bootstrapControl();
+                // Display/status must not depend on a browser granting audio playback.
+                this.openControlWebSocket();
+                this.startControlStatusFallback();
             }
         });
     }
