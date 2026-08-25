@@ -45,6 +45,8 @@ export class AppRcScannerComponent implements OnDestroy {
 
     injectedAudioActive = false;
 
+    injectedAudioEnabled = false;
+
     model: string = 'unknown';
 
     screenWakeLockActive = false;
@@ -68,6 +70,7 @@ export class AppRcScannerComponent implements OnDestroy {
             this.audioDeviceId = typeof config.audioDeviceId === 'number' ? config.audioDeviceId : -1;
             this.injectedAudioLabel = config.injectedAudioLabel || '';
             this.injectedAudioActive = config.injectedAudioActive === true;
+            this.injectedAudioEnabled = config.injectedAudioEnabled === true;
             this.isReadOnly = config.viewOnly === true;
 
             if (this.isReadOnly) {
@@ -84,6 +87,10 @@ export class AppRcScannerComponent implements OnDestroy {
 
         this.subscription.add(this.rcScannerService.injectedAudioActive.subscribe((active: boolean) => {
             this.injectedAudioActive = active;
+        }));
+
+        this.subscription.add(this.rcScannerService.injectedAudioEnabled.subscribe((enabled: boolean) => {
+            this.injectedAudioEnabled = enabled;
         }));
 
         this.subscription.add(this.rcScannerService.viewerStreams.subscribe((count: number) => {
@@ -160,6 +167,20 @@ export class AppRcScannerComponent implements OnDestroy {
         this.rcScannerService.playAudioTestTone()
             .then(() => this.audioStatus = 'Test tone played through the iPhone speaker.')
             .catch(() => this.audioStatus = 'Safari could not play the test tone.');
+    }
+
+    toggleInjectedAudio(): void {
+        const enabled = !this.injectedAudioEnabled;
+
+        this.subscription.add(this.rcScannerService.setInjectedAudioEnabled(enabled).subscribe({
+            next: (status) => {
+                this.injectedAudioEnabled = status.enabled === true;
+                this.injectedAudioActive = status.active === true;
+            },
+            error: () => {
+                this.audioStatus = 'Unable to change additional audio.';
+            },
+        }));
     }
 
     toggleAudioPanel(): void {

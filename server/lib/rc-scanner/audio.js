@@ -130,6 +130,25 @@ export class Audio extends EventEmitter {
         this.restart();
     }
 
+    setInjectedStreamEnabled(enabled) {
+        if (enabled && !this.config.injectedStream?.url) {
+            return false;
+        }
+
+        this.config.injectedStream.enabled = enabled;
+
+        if (enabled) {
+            this.startInjectedMixer();
+            this.emit('status', `Injected audio enabled: ${this.config.injectedStream.label}`);
+
+        } else {
+            this.stopInjectedMixer();
+            this.emit('status', `Injected audio disabled: ${this.config.injectedStream.label}`);
+        }
+
+        return true;
+    }
+
     scheduleRetry(newStream) {
         if (this.retryTimer) {
             return;

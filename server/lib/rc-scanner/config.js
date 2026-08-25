@@ -119,13 +119,34 @@ export class Config {
                 reconnectInterval: this.webSocket.reconnectInterval,
                 sampleRate: this.audio.sampleRate,
                 injectedAudioActive: Boolean(app.rcScanner?.audio?.injectedMixerActive),
-                injectedAudioLabel: this.audio.injectedStream.enabled ? this.audio.injectedStream.label : undefined,
+                injectedAudioEnabled: this.audio.injectedStream.enabled,
+                injectedAudioLabel: this.audio.injectedStream.url ? this.audio.injectedStream.label : undefined,
             });
         });
 
         app.router.get('/audio/injected-status', (req, res) => {
             res.setHeader('Cache-Control', 'no-store');
-            return res.send({ active: Boolean(app.rcScanner?.audio?.injectedMixerActive) });
+            return res.send({
+                active: Boolean(app.rcScanner?.audio?.injectedMixerActive),
+                enabled: this.audio.injectedStream.enabled,
+            });
+        });
+
+        app.router.post('/audio/injected-status', (req, res) => {
+            const enabled = req.body?.enabled;
+
+            if (typeof enabled !== 'boolean') {
+                return res.status(400).send({ error: 'enabled must be a boolean' });
+            }
+
+            if (!app.rcScanner?.audio?.setInjectedStreamEnabled?.(enabled)) {
+                return res.status(409).send({ error: 'Additional audio is not configured' });
+            }
+
+            return res.send({
+                active: Boolean(app.rcScanner.audio.injectedMixerActive),
+                enabled: this.audio.injectedStream.enabled,
+            });
         });
 
         app.router.get('/audio/devices', (req, res) => {
@@ -294,13 +315,17 @@ export class Config {
                     sampleRate: this.audio.sampleRate,
                     viewOnly: true,
                     injectedAudioActive: Boolean(app.rcScanner?.audio?.injectedMixerActive),
-                    injectedAudioLabel: this.audio.injectedStream.enabled ? this.audio.injectedStream.label : undefined,
+                    injectedAudioEnabled: this.audio.injectedStream.enabled,
+                    injectedAudioLabel: this.audio.injectedStream.url ? this.audio.injectedStream.label : undefined,
                 });
             });
 
             app.viewerRouter.get('/audio/injected-status', (req, res) => {
                 res.setHeader('Cache-Control', 'no-store');
-                return res.send({ active: Boolean(app.rcScanner?.audio?.injectedMixerActive) });
+                return res.send({
+                    active: Boolean(app.rcScanner?.audio?.injectedMixerActive),
+                    enabled: this.audio.injectedStream.enabled,
+                });
             });
 
             this.registerWebRtcRoutes(app.viewerRouter, app, true);

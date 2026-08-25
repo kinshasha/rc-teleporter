@@ -32,6 +32,7 @@ declare global {
 export interface AppRcScannerConfig {
     audioDeviceId: number;
     injectedAudioActive?: boolean;
+    injectedAudioEnabled?: boolean;
     injectedAudioLabel?: string;
     model: string;
     reconnectInterval: number;
@@ -67,6 +68,8 @@ export class AppRcScannerService implements OnDestroy {
     readonly audioStatus = new EventEmitter<string>();
 
     readonly injectedAudioActive = new EventEmitter<boolean>();
+
+    readonly injectedAudioEnabled = new EventEmitter<boolean>();
 
     readonly message = new EventEmitter<AppRcScannerMessage>();
 
@@ -161,6 +164,7 @@ export class AppRcScannerService implements OnDestroy {
         this.config.complete();
         this.audioStatus.complete();
         this.injectedAudioActive.complete();
+        this.injectedAudioEnabled.complete();
         this.message.complete();
         this.viewerStreams.complete();
 
@@ -333,6 +337,7 @@ export class AppRcScannerService implements OnDestroy {
 
             this.config.emit(config);
             this.injectedAudioActive.emit(config.injectedAudioActive === true);
+            this.injectedAudioEnabled.emit(config.injectedAudioEnabled === true);
 
             if (config.injectedAudioLabel) {
                 this.startInjectedAudioStatus();
@@ -357,6 +362,10 @@ export class AppRcScannerService implements OnDestroy {
 
     setAudioDevice(deviceId: number) {
         return this.httpClient.post<{ deviceId: number }>(this.getUrl('audio/device'), { deviceId });
+    }
+
+    setInjectedAudioEnabled(enabled: boolean) {
+        return this.httpClient.post<{ active: boolean; enabled: boolean }>(this.getUrl('audio/injected-status'), { enabled });
     }
 
     private getUrl(path: string, options: { ws?: boolean } = {}): string {
@@ -743,9 +752,15 @@ export class AppRcScannerService implements OnDestroy {
         }
 
         const poll = () => {
-            this.httpClient.get<{ active: boolean }>(this.getUrl('audio/injected-status')).subscribe({
-                next: (status) => this.injectedAudioActive.emit(status.active === true),
-                error: () => this.injectedAudioActive.emit(false),
+            this.httpClient.get<{ active: boolean; enabled: boolean }>(this.getUrl('audio/injected-status')).subscribe({
+                next: (status) => {
+                    this.injectedAudioActive.emit(status.active === true);
+                    this.injectedAudioEnabled.emit(status.enabled === true);
+                },
+                error: () => {
+                    this.injectedAudioActive.emit(false);
+                    this.injectedAudioEnabled.emit(false);
+                },
             });
         };
 

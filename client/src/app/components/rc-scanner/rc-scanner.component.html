@@ -13,6 +13,13 @@
 </div>
 
 <ng-container *ngIf="!isReadOnly">
+<button *ngIf="injectedAudioLabel" class="injected-audio-toggle" type="button"
+    [class.is-enabled]="injectedAudioEnabled" [class.is-active]="injectedAudioActive"
+    [attr.aria-label]="injectedAudioEnabled ? 'Turn off additional audio' : 'Turn on additional audio'"
+    [attr.aria-pressed]="injectedAudioEnabled" (click)="toggleInjectedAudio()">
+    <span aria-hidden="true"></span>
+</button>
+
 <button class="wake-lock-toggle" type="button" [class.is-active]="screenWakeLockActive"
     [class.is-unavailable]="screenWakeLockStatus === 'unavailable'"
     (click)="toggleScreenWakeLock()">
