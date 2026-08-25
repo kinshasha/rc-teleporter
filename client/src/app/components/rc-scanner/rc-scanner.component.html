@@ -15,7 +15,7 @@
 </button>
 
 <div class="audio-drawer" [class.is-open]="audioPanelOpen">
-    <button class="audio-drawer__toggle" type="button" [class.is-open]="audioPanelOpen" [class.is-fallback]="audioFallbackVisible"
+    <button class="audio-drawer__toggle" type="button" [class.is-open]="audioPanelOpen"
         [attr.aria-label]="audioPanelOpen ? 'Close audio settings' : 'Audio settings'" [attr.aria-expanded]="audioPanelOpen"
         (click)="toggleAudioPanel()">
         <span *ngIf="!audioPanelOpen" class="audio-drawer__toggle-icon" aria-hidden="true">⚙</span>
@@ -44,9 +44,6 @@
 
             <button class="audio-drawer__button" type="button" (click)="enableAudioPlayback()">Enable iPhone playback</button>
             <button class="audio-drawer__button" type="button" (click)="playAudioTestTone()">Test iPhone speaker</button>
-            <button class="audio-drawer__button" type="button" (click)="toggleAudioFallbackTest()">
-                {{ audioFallbackTestActive ? 'Clear fallback warning' : 'Test fallback warning' }}
-            </button>
             <button class="audio-drawer__button" type="button" (click)="refreshAudioDevices()">Refresh</button>
         </div>
 
@@ -54,10 +51,6 @@
     </div>
 </div>
 </ng-container>
-
-<div *ngIf="audioFallbackVisible" class="audio-fallback-warning" role="status">
-    <span aria-hidden="true">●</span> Buffered audio fallback
-</div>
 
 <div *ngIf="isReadOnly" class="viewer-audio">
     <span class="viewer-audio__streams">{{ viewerStreamCount }} {{ viewerStreamCount === 1 ? 'stream' : 'streams' }}</span>

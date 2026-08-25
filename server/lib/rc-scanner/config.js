@@ -164,7 +164,7 @@ export class Config {
             const clientAddress = getClientAddress(req);
 
             this.activeFallbackStreams++;
-            logEvent(`[audio 3000] MP3 fallback connected from ${clientAddress} (${this.activeFallbackStreams} active)`);
+            logFallback(`[audio 3000] MP3 fallback connected from ${clientAddress} (${this.activeFallbackStreams} active)`);
 
             const encoder = spawn('ffmpeg', [
                 '-hide_banner', '-loglevel', 'error',
@@ -498,6 +498,14 @@ function getClientAddress(req) {
 
 function logEvent(message, warning = false) {
     console[warning ? 'warn' : 'log'](`${new Date().toISOString()} ${message}`);
+}
+
+function logFallback(message) {
+    console.warn(formatFallbackLog(message));
+}
+
+export function formatFallbackLog(message, timestamp = new Date().toISOString()) {
+    return `\x1b[31m${timestamp} ${message}\x1b[0m`;
 }
 
 async function getIceServers() {
