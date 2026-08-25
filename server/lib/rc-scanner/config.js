@@ -287,15 +287,10 @@ export class Config {
         }
 
         router.get('/audio/webrtc/ice', async (req, res) => {
-            try {
-                const iceServers = await getTurnIceServers();
+            const iceServers = await getIceServers();
 
-                res.setHeader('Cache-Control', 'no-store');
-                return res.send({ iceServers });
-
-            } catch (error) {
-                return res.status(502).send({ error: error.message || 'Unable to obtain TURN credentials' });
-            }
+            res.setHeader('Cache-Control', 'no-store');
+            return res.send({ iceServers });
         });
 
         router.post('/audio/webrtc/offer', async (req, res) => {
@@ -306,13 +301,7 @@ export class Config {
                 return res.status(400).send({ error: 'A WebRTC offer and audio input are required' });
             }
 
-            let iceServers;
-
-            try {
-                iceServers = await getTurnIceServers();
-            } catch (error) {
-                return res.status(502).send({ error: error.message || 'Unable to obtain TURN credentials' });
-            }
+            const iceServers = await getIceServers();
 
             const peer = new wrtc.RTCPeerConnection({ iceServers });
             const source = new wrtc.nonstandard.RTCAudioSource();
@@ -472,6 +461,16 @@ async function getTurnIceServers() {
                 : server.urls,
         }))
         : [];
+}
+
+async function getIceServers() {
+    try {
+        return await getTurnIceServers();
+    } catch (error) {
+        // Keep local WebRTC working if the optional external TURN key is stale.
+        console.warn(`Cloudflare TURN unavailable; using direct WebRTC: ${error.message}`);
+        return [{ urls: 'stun:stun.cloudflare.com:3478' }];
+    }
 }
 
 function createWavHeader(sampleRate, dataLength = 0xffffffff) {
