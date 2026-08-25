@@ -57,7 +57,9 @@ export class Ws extends EventEmitter {
 
         this.controlSocket = new WebSocket.Server({ noServer: true });
 
-        this.controlSocket.on('connection', (ws) => {
+        this.controlSocket.on('connection', (ws, req) => {
+            console.log(`[web 3000] control connected from ${getClientAddress(req)}`);
+
             let previousData;
 
             const driverHandler = (data) => {
@@ -85,7 +87,9 @@ export class Ws extends EventEmitter {
 
         this.viewerStreamCount = 0;
 
-        this.viewerSocket.on('connection', (ws) => {
+        this.viewerSocket.on('connection', (ws, req) => {
+            console.log(`[web 3001] display connected from ${getClientAddress(req)}`);
+
             let previousData;
             let lastViewerCommandAt = 0;
 
@@ -229,4 +233,11 @@ export class Ws extends EventEmitter {
             }, 1000);
         });
     }
+}
+
+function getClientAddress(req) {
+    const forwarded = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'];
+    const address = Array.isArray(forwarded) ? forwarded[0] : String(forwarded || '').split(',')[0].trim();
+
+    return address || req.socket?.remoteAddress || 'unknown';
 }

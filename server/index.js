@@ -119,6 +119,7 @@ export class App extends EventEmitter {
         this.router.use(express.json());
         this.router.use(express.urlencoded({ extended: false }));
         this.router.use(helmet({ contentSecurityPolicy: false }));
+        this.router.use(createBrowserConnectionLogger(3000));
         this.router.use((req, res, next) => {
             if (req.path === '/' || req.path === '/index.html') {
                 res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -150,6 +151,7 @@ export class App extends EventEmitter {
             this.viewerRouter.use(compression());
             this.viewerRouter.use(express.json());
             this.viewerRouter.use(helmet({ contentSecurityPolicy: false }));
+            this.viewerRouter.use(createBrowserConnectionLogger(this.config.nodejs.viewer.port));
             this.viewerRouter.use((req, res, next) => {
                 if (req.path === '/' || req.path === '/index.html') {
                     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -258,3 +260,20 @@ export class App extends EventEmitter {
 }
 
 export const app = new App();
+
+function createBrowserConnectionLogger(port) {
+    return (req, res, next) => {
+        if (req.method === 'GET' && (req.path === '/' || req.path === '/index.html')) {
+            console.log(`[web ${port}] browser opened from ${getClientAddress(req)}`);
+        }
+
+        next();
+    };
+}
+
+function getClientAddress(req) {
+    const forwarded = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'];
+    const address = Array.isArray(forwarded) ? forwarded[0] : String(forwarded || '').split(',')[0].trim();
+
+    return address || req.socket?.remoteAddress || 'unknown';
+}
