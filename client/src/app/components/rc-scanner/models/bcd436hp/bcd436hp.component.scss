@@ -216,6 +216,7 @@ $led-yellow: #e6e632;
 .led {
   background-color: $led-black;
   border: 0;
+  display: block;
   height: 12px;
   margin-left: auto;
   padding: 0;
@@ -223,15 +224,6 @@ $led-yellow: #e6e632;
 
   &.audio-toggle {
     cursor: pointer;
-  }
-
-  &.audio-enabled {
-    outline: 2px solid $led-yellow;
-    outline-offset: 3px;
-  }
-
-  &.audio-active {
-    outline-color: $led-green;
   }
 
   &.blue {
@@ -267,6 +259,16 @@ $led-yellow: #e6e632;
   &.white {
     background-color: $led-white;
     box-shadow: 0 0 6px 3px $led-white;
+  }
+
+  &.audio-enabled {
+    background-color: $led-yellow;
+    box-shadow: 0 0 6px 3px $led-yellow;
+  }
+
+  &.audio-active {
+    background-color: $led-green;
+    box-shadow: 0 0 6px 3px $led-green;
   }
 }
 
