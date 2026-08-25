@@ -169,6 +169,7 @@ export class Audio extends EventEmitter {
         }
 
         const sampleRate = String(this.config.sampleRate);
+        const streamUrl = formatInjectedStreamUrl(injectedStream.url);
         const mixer = spawn('ffmpeg', [
             '-hide_banner', '-loglevel', 'error',
             '-f', 's16le', '-ar', sampleRate, '-ac', '1', '-i', 'pipe:0',
@@ -181,7 +182,7 @@ export class Audio extends EventEmitter {
         mixer.stdout.on('data', (data) => {
             if (!this.injectedMixerActive) {
                 this.injectedMixerActive = true;
-                this.emit('status', `Injected audio active: ${injectedStream.label}`);
+                this.emit('status', `Injected audio active: ${injectedStream.label} (${streamUrl})`);
             }
 
             this.emit('data', toArrayBuffer(data));
@@ -190,6 +191,7 @@ export class Audio extends EventEmitter {
         mixer.on('close', (code) => this.handleInjectedMixerStop(`exit ${code ?? 'unknown'}`));
 
         this.injectedMixer = mixer;
+        this.emit('status', `Injected audio connecting: ${injectedStream.label} (${streamUrl})`);
     }
 
     stopInjectedMixer() {
@@ -230,4 +232,14 @@ export class Audio extends EventEmitter {
 
 function toArrayBuffer(data) {
     return data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+}
+
+export function formatInjectedStreamUrl(value) {
+    try {
+        const url = new URL(value);
+
+        return `${url.protocol}//${url.host}${url.pathname}`;
+    } catch (error) {
+        return 'invalid stream URL';
+    }
 }
