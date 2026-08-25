@@ -29,6 +29,23 @@
   text-transform: uppercase;
 }
 
+.injected-audio-notice.is-active {
+  color: #a9e59d;
+}
+
+.injected-audio-notice__indicator {
+  background: currentColor;
+  border-radius: 50%;
+  display: inline-block;
+  height: 6px;
+  margin: 0 5px 1px 0;
+  width: 6px;
+}
+
+.injected-audio-notice.is-active .injected-audio-notice__indicator {
+  box-shadow: 0 0 8px currentColor;
+}
+
 .wake-lock-toggle {
   background: rgba(55, 55, 55, 0.96);
   border: 1px solid rgba(255, 255, 255, 0.2);

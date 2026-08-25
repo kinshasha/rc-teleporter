@@ -31,6 +31,7 @@ declare global {
 
 export interface AppRcScannerConfig {
     audioDeviceId: number;
+    injectedAudioActive?: boolean;
     injectedAudioLabel?: string;
     model: string;
     reconnectInterval: number;
@@ -65,6 +66,8 @@ export class AppRcScannerService implements OnDestroy {
 
     readonly audioStatus = new EventEmitter<string>();
 
+    readonly injectedAudioActive = new EventEmitter<boolean>();
+
     readonly message = new EventEmitter<AppRcScannerMessage>();
 
     readonly viewerStreams = new EventEmitter<number>();
@@ -78,6 +81,8 @@ export class AppRcScannerService implements OnDestroy {
     private audioFramesReceived = 0;
 
     private controlStatusTimer: number | undefined;
+
+    private injectedAudioStatusTimer: number | undefined;
 
     private isPowerOn = false;
 
@@ -149,6 +154,7 @@ export class AppRcScannerService implements OnDestroy {
 
         this.config.complete();
         this.audioStatus.complete();
+        this.injectedAudioActive.complete();
         this.message.complete();
         this.viewerStreams.complete();
 
@@ -169,6 +175,7 @@ export class AppRcScannerService implements OnDestroy {
         this.closeViewerWebSocket();
 
         this.stopControlStatusFallback();
+        this.stopInjectedAudioStatus();
     }
 
     send(message: string): void {
@@ -318,6 +325,11 @@ export class AppRcScannerService implements OnDestroy {
             this.title.setTitle(`${this.title.getTitle()} ↔ ${this.scannerConfig.model.toUpperCase()}`);
 
             this.config.emit(config);
+            this.injectedAudioActive.emit(config.injectedAudioActive === true);
+
+            if (config.injectedAudioLabel) {
+                this.startInjectedAudioStatus();
+            }
 
             if (this.readOnly) {
                 this.isPowerOn = true;
@@ -655,6 +667,29 @@ export class AppRcScannerService implements OnDestroy {
         if (this.controlStatusTimer !== undefined) {
             window.clearInterval(this.controlStatusTimer);
             this.controlStatusTimer = undefined;
+        }
+    }
+
+    private startInjectedAudioStatus(): void {
+        if (this.injectedAudioStatusTimer !== undefined) {
+            return;
+        }
+
+        const poll = () => {
+            this.httpClient.get<{ active: boolean }>(this.getUrl('audio/injected-status')).subscribe({
+                next: (status) => this.injectedAudioActive.emit(status.active === true),
+                error: () => this.injectedAudioActive.emit(false),
+            });
+        };
+
+        poll();
+        this.injectedAudioStatusTimer = window.setInterval(poll, 1000);
+    }
+
+    private stopInjectedAudioStatus(): void {
+        if (this.injectedAudioStatusTimer !== undefined) {
+            window.clearInterval(this.injectedAudioStatusTimer);
+            this.injectedAudioStatusTimer = undefined;
         }
     }
 

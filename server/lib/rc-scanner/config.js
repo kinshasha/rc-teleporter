@@ -118,8 +118,14 @@ export class Config {
                 model: this.model,
                 reconnectInterval: this.webSocket.reconnectInterval,
                 sampleRate: this.audio.sampleRate,
+                injectedAudioActive: Boolean(app.rcScanner?.audio?.injectedMixerActive),
                 injectedAudioLabel: this.audio.injectedStream.enabled ? this.audio.injectedStream.label : undefined,
             });
+        });
+
+        app.router.get('/audio/injected-status', (req, res) => {
+            res.setHeader('Cache-Control', 'no-store');
+            return res.send({ active: Boolean(app.rcScanner?.audio?.injectedMixerActive) });
         });
 
         app.router.get('/audio/devices', (req, res) => {
@@ -287,8 +293,14 @@ export class Config {
                     reconnectInterval: this.webSocket.reconnectInterval,
                     sampleRate: this.audio.sampleRate,
                     viewOnly: true,
+                    injectedAudioActive: Boolean(app.rcScanner?.audio?.injectedMixerActive),
                     injectedAudioLabel: this.audio.injectedStream.enabled ? this.audio.injectedStream.label : undefined,
                 });
+            });
+
+            app.viewerRouter.get('/audio/injected-status', (req, res) => {
+                res.setHeader('Cache-Control', 'no-store');
+                return res.send({ active: Boolean(app.rcScanner?.audio?.injectedMixerActive) });
             });
 
             this.registerWebRtcRoutes(app.viewerRouter, app, true);
