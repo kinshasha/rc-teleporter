@@ -1,7 +1,7 @@
 <div [ngClass]="{ 'dimmer-low': dimmer === 1, 'dimmer-middle': dimmer === 2, 'dimmer-high': dimmer === 3 }">
     <button *ngIf="!readOnly && injectedAudioLabel" class="led audio-toggle" type="button"
-        [ngClass]="[led, injectedAudioEnabled ? 'audio-enabled' : 'audio-disabled', injectedAudioEnabled && injectedAudioActive ? 'audio-active' : '']"
-        [attr.aria-label]="injectedAudioEnabled ? 'Turn off additional audio' : 'Turn on additional audio'"
+        [ngClass]="[led, injectedAudioMode === 'mix' ? 'audio-mix' : injectedAudioMode === 'additionalOnly' ? 'audio-additional-only' : 'audio-disabled']"
+        [attr.aria-label]="injectedAudioMode === 'off' ? 'Enable additional audio mix' : injectedAudioMode === 'mix' ? 'Play additional audio only' : 'Turn off additional audio'"
         [attr.aria-pressed]="injectedAudioEnabled" (click)="toggleInjectedAudio()"></button>
     <div *ngIf="readOnly || !injectedAudioLabel" class="led" [ngClass]="led"></div>
     <div (click)="onDisplayPress()" (dblclick)="toggleFullscreen()">

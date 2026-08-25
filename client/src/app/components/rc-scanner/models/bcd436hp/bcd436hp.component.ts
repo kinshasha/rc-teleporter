@@ -19,7 +19,7 @@
 
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, HostListener, OnDestroy, OnInit } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { AppRcScannerMessage, AppRcScannerService } from '../../rc-scanner.service';
+import { AppInjectedAudioMode, AppRcScannerMessage, AppRcScannerService } from '../../rc-scanner.service';
 
 // @ts-ignore
 import * as glyphs from './bcd436hp.js';
@@ -45,6 +45,8 @@ export class AppRcScannerBcd436hpComponent implements OnDestroy, OnInit {
 
     injectedAudioEnabled = false;
 
+    injectedAudioMode: AppInjectedAudioMode = 'off';
+
     injectedAudioLabel = '';
 
     powerOn = false;
@@ -68,6 +70,7 @@ export class AppRcScannerBcd436hpComponent implements OnDestroy, OnInit {
         this.injectedAudioLabel = config?.injectedAudioLabel || '';
         this.injectedAudioEnabled = config?.injectedAudioEnabled === true;
         this.injectedAudioActive = config?.injectedAudioActive === true;
+        this.injectedAudioMode = config?.injectedAudioMode || (this.injectedAudioEnabled ? 'mix' : 'off');
     }
 
     ngOnDestroy(): void {
@@ -89,6 +92,7 @@ export class AppRcScannerBcd436hpComponent implements OnDestroy, OnInit {
         this.subscription.add(this.rcScannerService.config.subscribe((config) => {
             this.injectedAudioLabel = config.injectedAudioLabel || '';
             this.injectedAudioEnabled = config.injectedAudioEnabled === true;
+            this.injectedAudioMode = config.injectedAudioMode || (this.injectedAudioEnabled ? 'mix' : 'off');
             this.ngChangeDetectorReg.markForCheck();
         }));
 
@@ -101,15 +105,26 @@ export class AppRcScannerBcd436hpComponent implements OnDestroy, OnInit {
             this.injectedAudioEnabled = enabled;
             this.ngChangeDetectorReg.markForCheck();
         }));
+
+        this.subscription.add(this.rcScannerService.injectedAudioMode.subscribe((mode) => {
+            this.injectedAudioMode = mode;
+            this.injectedAudioEnabled = mode !== 'off';
+            this.ngChangeDetectorReg.markForCheck();
+        }));
     }
 
     toggleInjectedAudio(): void {
-        const enabled = !this.injectedAudioEnabled;
+        const mode: AppInjectedAudioMode = this.injectedAudioMode === 'off'
+            ? 'mix'
+            : this.injectedAudioMode === 'mix'
+                ? 'additionalOnly'
+                : 'off';
 
-        this.rcScannerService.setInjectedAudioEnabled(enabled).subscribe({
+        this.rcScannerService.setInjectedAudioMode(mode).subscribe({
             next: (status) => {
                 this.injectedAudioEnabled = status.enabled === true;
                 this.injectedAudioActive = status.active === true;
+                this.injectedAudioMode = status.mode;
                 this.ngChangeDetectorReg.markForCheck();
             },
             error: () => undefined,

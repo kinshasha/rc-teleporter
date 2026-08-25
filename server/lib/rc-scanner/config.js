@@ -49,6 +49,9 @@ export class Config {
                 : parseInt(process.env.RC_AUDIO_SQUELCH, 10) || 100,
             injectedStream: {
                 enabled: injectedStream?.enabled === true && typeof injectedStream.url === 'string' && injectedStream.url.length > 0,
+                mode: injectedStream?.enabled === true && typeof injectedStream.url === 'string' && injectedStream.url.length > 0
+                    ? 'mix'
+                    : 'off',
                 label: typeof injectedStream?.label === 'string' && injectedStream.label.trim().length > 0
                     ? injectedStream.label.trim()
                     : 'Additional audio',
@@ -120,6 +123,7 @@ export class Config {
                 sampleRate: this.audio.sampleRate,
                 injectedAudioActive: Boolean(app.rcScanner?.audio?.injectedMixerActive),
                 injectedAudioEnabled: this.audio.injectedStream.enabled,
+                injectedAudioMode: this.audio.injectedStream.mode,
                 injectedAudioLabel: this.audio.injectedStream.url ? this.audio.injectedStream.label : undefined,
             });
         });
@@ -129,25 +133,27 @@ export class Config {
             return res.send({
                 active: Boolean(app.rcScanner?.audio?.injectedMixerActive),
                 enabled: this.audio.injectedStream.enabled,
+                mode: this.audio.injectedStream.mode,
             });
         });
 
         app.router.post('/audio/injected-status', (req, res) => {
-            const enabled = req.body?.enabled;
+            const mode = req.body?.mode;
 
-            if (typeof enabled !== 'boolean') {
-                return res.status(400).send({ error: 'enabled must be a boolean' });
+            if (!['off', 'mix', 'additionalOnly'].includes(mode)) {
+                return res.status(400).send({ error: 'mode must be off, mix, or additionalOnly' });
             }
 
-            if (!app.rcScanner?.audio?.setInjectedStreamEnabled?.(enabled)) {
+            if (!app.rcScanner?.audio?.setInjectedStreamMode?.(mode)) {
                 return res.status(409).send({ error: 'Additional audio is not configured' });
             }
 
-            logEvent(`[audio 3000] additional audio ${enabled ? 'enabled' : 'disabled'} by ${getClientAddress(req)}`);
+            logEvent(`[audio 3000] additional audio mode ${mode} selected by ${getClientAddress(req)}`);
 
             return res.send({
                 active: Boolean(app.rcScanner.audio.injectedMixerActive),
                 enabled: this.audio.injectedStream.enabled,
+                mode: this.audio.injectedStream.mode,
             });
         });
 
@@ -318,6 +324,7 @@ export class Config {
                     viewOnly: true,
                     injectedAudioActive: Boolean(app.rcScanner?.audio?.injectedMixerActive),
                     injectedAudioEnabled: this.audio.injectedStream.enabled,
+                    injectedAudioMode: this.audio.injectedStream.mode,
                     injectedAudioLabel: this.audio.injectedStream.url ? this.audio.injectedStream.label : undefined,
                 });
             });
@@ -327,6 +334,7 @@ export class Config {
                 return res.send({
                     active: Boolean(app.rcScanner?.audio?.injectedMixerActive),
                     enabled: this.audio.injectedStream.enabled,
+                    mode: this.audio.injectedStream.mode,
                 });
             });
 

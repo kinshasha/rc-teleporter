@@ -62,9 +62,13 @@ export class Audio extends EventEmitter {
 
                 stream.on('data', (data) => {
                     if (this.injectedMixer?.stdin.writable) {
-                        this.injectedMixer.stdin.write(data);
+                        const mixerInput = this.config.injectedStream.mode === 'additionalOnly'
+                            ? Buffer.alloc(data.length)
+                            : data;
 
-                        if (!this.injectedMixerActive) {
+                        this.injectedMixer.stdin.write(mixerInput);
+
+                        if (!this.injectedMixerActive && this.config.injectedStream.mode !== 'additionalOnly') {
                             this.emitScannerAudio(data);
                         }
 
@@ -130,20 +134,21 @@ export class Audio extends EventEmitter {
         this.restart();
     }
 
-    setInjectedStreamEnabled(enabled) {
-        if (enabled && !this.config.injectedStream?.url) {
+    setInjectedStreamMode(mode) {
+        if (mode !== 'off' && !this.config.injectedStream?.url) {
             return false;
         }
 
-        this.config.injectedStream.enabled = enabled;
+        this.config.injectedStream.mode = mode;
+        this.config.injectedStream.enabled = mode !== 'off';
 
-        if (enabled) {
-            this.startInjectedMixer();
-            this.emit('status', `Injected audio enabled: ${this.config.injectedStream.label}`);
-
-        } else {
+        if (mode === 'off') {
             this.stopInjectedMixer();
             this.emit('status', `Injected audio disabled: ${this.config.injectedStream.label}`);
+
+        } else {
+            this.startInjectedMixer();
+            this.emit('status', `Injected audio mode ${mode}: ${this.config.injectedStream.label}`);
         }
 
         return true;

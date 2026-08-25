@@ -33,12 +33,15 @@ export interface AppRcScannerConfig {
     audioDeviceId: number;
     injectedAudioActive?: boolean;
     injectedAudioEnabled?: boolean;
+    injectedAudioMode?: AppInjectedAudioMode;
     injectedAudioLabel?: string;
     model: string;
     reconnectInterval: number;
     sampleRate: number;
     viewOnly?: boolean;
 }
+
+export type AppInjectedAudioMode = 'off' | 'mix' | 'additionalOnly';
 
 export interface AppRcScannerAudioDevice {
     defaultSampleRate: number;
@@ -70,6 +73,8 @@ export class AppRcScannerService implements OnDestroy {
     readonly injectedAudioActive = new EventEmitter<boolean>();
 
     readonly injectedAudioEnabled = new EventEmitter<boolean>();
+
+    readonly injectedAudioMode = new EventEmitter<AppInjectedAudioMode>();
 
     readonly message = new EventEmitter<AppRcScannerMessage>();
 
@@ -165,6 +170,7 @@ export class AppRcScannerService implements OnDestroy {
         this.audioStatus.complete();
         this.injectedAudioActive.complete();
         this.injectedAudioEnabled.complete();
+        this.injectedAudioMode.complete();
         this.message.complete();
         this.viewerStreams.complete();
 
@@ -338,6 +344,7 @@ export class AppRcScannerService implements OnDestroy {
             this.config.emit(config);
             this.injectedAudioActive.emit(config.injectedAudioActive === true);
             this.injectedAudioEnabled.emit(config.injectedAudioEnabled === true);
+            this.injectedAudioMode.emit(this.getInjectedAudioMode(config));
 
             if (config.injectedAudioLabel) {
                 this.startInjectedAudioStatus();
@@ -364,8 +371,11 @@ export class AppRcScannerService implements OnDestroy {
         return this.httpClient.post<{ deviceId: number }>(this.getUrl('audio/device'), { deviceId });
     }
 
-    setInjectedAudioEnabled(enabled: boolean) {
-        return this.httpClient.post<{ active: boolean; enabled: boolean }>(this.getUrl('audio/injected-status'), { enabled });
+    setInjectedAudioMode(mode: AppInjectedAudioMode) {
+        return this.httpClient.post<{ active: boolean; enabled: boolean; mode: AppInjectedAudioMode }>(
+            this.getUrl('audio/injected-status'),
+            { mode },
+        );
     }
 
     getCurrentConfig(): AppRcScannerConfig | undefined {
@@ -756,14 +766,16 @@ export class AppRcScannerService implements OnDestroy {
         }
 
         const poll = () => {
-            this.httpClient.get<{ active: boolean; enabled: boolean }>(this.getUrl('audio/injected-status')).subscribe({
+            this.httpClient.get<{ active: boolean; enabled: boolean; mode: AppInjectedAudioMode }>(this.getUrl('audio/injected-status')).subscribe({
                 next: (status) => {
                     this.injectedAudioActive.emit(status.active === true);
                     this.injectedAudioEnabled.emit(status.enabled === true);
+                    this.injectedAudioMode.emit(status.mode);
                 },
                 error: () => {
                     this.injectedAudioActive.emit(false);
                     this.injectedAudioEnabled.emit(false);
+                    this.injectedAudioMode.emit('off');
                 },
             });
         };
@@ -777,6 +789,14 @@ export class AppRcScannerService implements OnDestroy {
             window.clearInterval(this.injectedAudioStatusTimer);
             this.injectedAudioStatusTimer = undefined;
         }
+    }
+
+    private getInjectedAudioMode(config: AppRcScannerConfig): AppInjectedAudioMode {
+        if (config.injectedAudioMode === 'mix' || config.injectedAudioMode === 'additionalOnly') {
+            return config.injectedAudioMode;
+        }
+
+        return config.injectedAudioEnabled === true ? 'mix' : 'off';
     }
 
     private reconnectAudio(): void {
