@@ -92,6 +92,12 @@ export class AppRcScannerService implements OnDestroy {
 
     private webRtcPeer: RTCPeerConnection | undefined;
 
+    private webRtcRecoveryTimer: number | undefined;
+
+    private webRtcRecoveryInProgress = false;
+
+    private webRtcStreaming = false;
+
     private viewerWebRtcSessionId: string | undefined;
 
     private testToneAudio: HTMLAudioElement | undefined;
@@ -166,6 +172,7 @@ export class AppRcScannerService implements OnDestroy {
         this.webRtcAudio?.pause();
         this.closeViewerWebRtcSession();
         this.webRtcPeer?.close();
+        this.stopWebRtcRecovery();
         this.testToneAudio?.pause();
 
         if (this.wsControl instanceof WebSocket) {
@@ -451,9 +458,19 @@ export class AppRcScannerService implements OnDestroy {
 
         await this.webRtcPeer.setRemoteDescription(answer);
 
+        this.webRtcStreaming = true;
+
         if (this.readOnly && typeof answer.sessionId === 'string') {
             this.viewerWebRtcSessionId = answer.sessionId;
         }
+
+        this.webRtcPeer.onconnectionstatechange = () => {
+            const state = this.webRtcPeer?.connectionState;
+
+            if (state === 'disconnected' || state === 'failed' || state === 'closed') {
+                this.scheduleWebRtcRecovery();
+            }
+        };
     }
 
     private closeViewerWebRtcSession(): void {
@@ -471,6 +488,54 @@ export class AppRcScannerService implements OnDestroy {
 
         } else {
             this.httpClient.post(url, {}).subscribe({ error: () => undefined });
+        }
+    }
+
+    private scheduleWebRtcRecovery(): void {
+        if (!this.webRtcStreaming || this.webRtcRecoveryTimer !== undefined || this.webRtcRecoveryInProgress) {
+            return;
+        }
+
+        this.audioStatus.emit('Scanner audio disconnected. Reconnecting low-latency audio...');
+        this.webRtcRecoveryTimer = window.setTimeout(() => {
+            this.webRtcRecoveryTimer = undefined;
+            void this.recoverWebRtcAudio();
+        }, this.scannerConfig?.reconnectInterval || 2000);
+    }
+
+    private async recoverWebRtcAudio(): Promise<void> {
+        if (!this.webRtcStreaming || this.webRtcRecoveryInProgress) {
+            return;
+        }
+
+        this.webRtcRecoveryInProgress = true;
+        this.webRtcStreaming = false;
+        this.closeViewerWebRtcSession();
+        this.webRtcPeer?.close();
+        this.webRtcPeer = undefined;
+
+        let retry = false;
+
+        try {
+            await this.openWebRtcAudioStream();
+
+        } catch (error) {
+            this.webRtcStreaming = true;
+            retry = true;
+
+        } finally {
+            this.webRtcRecoveryInProgress = false;
+        }
+
+        if (retry) {
+            this.scheduleWebRtcRecovery();
+        }
+    }
+
+    private stopWebRtcRecovery(): void {
+        if (this.webRtcRecoveryTimer !== undefined) {
+            window.clearTimeout(this.webRtcRecoveryTimer);
+            this.webRtcRecoveryTimer = undefined;
         }
     }
 
@@ -591,6 +656,7 @@ export class AppRcScannerService implements OnDestroy {
         this.wsControl.onopen = () => {
             if (this.wsControl instanceof WebSocket) {
                 this.message.emit({ ready: true });
+                this.scheduleWebRtcRecovery();
 
                 this.wsControl.onmessage = (ev: MessageEvent) => {
                     this.stopControlStatusFallback();
@@ -623,6 +689,7 @@ export class AppRcScannerService implements OnDestroy {
         this.wsViewer.onopen = () => {
             if (this.wsViewer instanceof WebSocket) {
                 this.message.emit({ ready: true });
+                this.scheduleWebRtcRecovery();
 
                 this.wsViewer.onmessage = (ev: MessageEvent) => this.handleViewerMessage(ev.data);
             }
