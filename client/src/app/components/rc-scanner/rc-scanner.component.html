@@ -7,7 +7,7 @@
     </ng-container>
 </div>
 
-<div *ngIf="injectedAudioLabel" class="injected-audio-notice" [class.is-active]="injectedAudioActive" role="status">
+<div *ngIf="injectedAudioLabel && injectedAudioEnabled" class="injected-audio-notice" [class.is-active]="injectedAudioActive" role="status">
     <span class="injected-audio-notice__indicator" aria-hidden="true"></span>
     Additional audio: {{ injectedAudioLabel }}{{ injectedAudioActive ? ' · active' : '' }}
 </div>
