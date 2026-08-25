@@ -52,6 +52,8 @@ export interface AppRcScannerMessage {
     ready?: boolean;
 }
 
+export type AppRcScannerAudioTransport = 'fallback' | 'webrtc';
+
 @Injectable({
     providedIn: 'root',
 })
@@ -63,6 +65,8 @@ export class AppRcScannerService implements OnDestroy {
     readonly config = new EventEmitter<AppRcScannerConfig>();
 
     readonly audioStatus = new EventEmitter<string>();
+
+    readonly audioTransport = new EventEmitter<AppRcScannerAudioTransport>();
 
     readonly message = new EventEmitter<AppRcScannerMessage>();
 
@@ -115,9 +119,11 @@ export class AppRcScannerService implements OnDestroy {
     async enableAudioPlayback(): Promise<void> {
         try {
             await this.openWebRtcAudioStream();
+            this.audioTransport.emit('webrtc');
 
         } catch (error) {
             console.warn('WebRTC audio unavailable, using MP3 fallback.', error);
+            this.audioTransport.emit('fallback');
             this.audioStatus.emit('WebRTC unavailable. Using buffered MP3 audio.');
             await this.openNativeAudioStream();
         }
@@ -148,6 +154,7 @@ export class AppRcScannerService implements OnDestroy {
 
         this.config.complete();
         this.audioStatus.complete();
+        this.audioTransport.complete();
         this.message.complete();
         this.viewerStreams.complete();
 

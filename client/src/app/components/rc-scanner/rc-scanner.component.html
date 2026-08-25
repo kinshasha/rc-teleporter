@@ -15,7 +15,7 @@
 </button>
 
 <div class="audio-drawer" [class.is-open]="audioPanelOpen">
-    <button class="audio-drawer__toggle" type="button" [class.is-open]="audioPanelOpen"
+    <button class="audio-drawer__toggle" type="button" [class.is-open]="audioPanelOpen" [class.is-fallback]="audioFallbackActive"
         [attr.aria-label]="audioPanelOpen ? 'Close audio settings' : 'Audio settings'" [attr.aria-expanded]="audioPanelOpen"
         (click)="toggleAudioPanel()">
         <span *ngIf="!audioPanelOpen" class="audio-drawer__toggle-icon" aria-hidden="true">⚙</span>
@@ -51,6 +51,10 @@
     </div>
 </div>
 </ng-container>
+
+<div *ngIf="audioFallbackActive" class="audio-fallback-warning" role="status">
+    <span aria-hidden="true">●</span> Buffered audio fallback
+</div>
 
 <div *ngIf="isReadOnly" class="viewer-audio">
     <span class="viewer-audio__streams">{{ viewerStreamCount }} {{ viewerStreamCount === 1 ? 'stream' : 'streams' }}</span>

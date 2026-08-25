@@ -37,6 +37,8 @@ export class AppRcScannerComponent implements OnDestroy {
 
     audioStatus = 'Loading audio inputs...';
 
+    audioFallbackActive = false;
+
     audioPanelOpen = false;
 
     isReadOnly = false;
@@ -74,6 +76,10 @@ export class AppRcScannerComponent implements OnDestroy {
 
         this.subscription.add(this.rcScannerService.audioStatus.subscribe((status: string) => {
             this.audioStatus = status;
+        }));
+
+        this.subscription.add(this.rcScannerService.audioTransport.subscribe((transport) => {
+            this.audioFallbackActive = transport === 'fallback';
         }));
 
         this.subscription.add(this.rcScannerService.viewerStreams.subscribe((count: number) => {
