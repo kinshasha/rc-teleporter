@@ -37,7 +37,9 @@ export class Ws extends EventEmitter {
 
         this.audioSocket = new WebSocket.Server({ noServer: true });
 
-        this.audioSocket.on('connection', (ws) => {
+        this.audioSocket.on('connection', (ws, req) => {
+            console.log(`[audio 3000] raw PCM connected from ${getClientAddress(req)}`);
+
             const audioHandler = (data) => ws.send(data);
 
             this.audio.on('data', audioHandler);
@@ -46,6 +48,7 @@ export class Ws extends EventEmitter {
 
             ws.on('close', () => {
                 this.audio.removeListener('data', audioHandler);
+                console.log(`[audio 3000] raw PCM disconnected from ${getClientAddress(req)}`);
             });
 
             ws.on('pong', () => ws.isAlive = true);

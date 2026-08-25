@@ -30,6 +30,8 @@ export class Config {
         const config = app.config.rcScanner;
 
         this.viewerSessions = new Map();
+        this.activeFallbackStreams = 0;
+        this.activeWebRtcStreams = 0;
 
         this.audio = {
             deviceId: typeof config?.audio?.deviceId === 'number'
@@ -159,6 +161,11 @@ export class Config {
                 return res.status(503).send({ error: 'Audio input is unavailable' });
             }
 
+            const clientAddress = getClientAddress(req);
+
+            this.activeFallbackStreams++;
+            console.log(`[audio 3000] MP3 fallback connected from ${clientAddress} (${this.activeFallbackStreams} active)`);
+
             const encoder = spawn('ffmpeg', [
                 '-hide_banner', '-loglevel', 'error',
                 '-f', 's16le', '-ar', String(this.audio.sampleRate), '-ac', '1', '-i', 'pipe:0',
@@ -192,6 +199,8 @@ export class Config {
                 audio.removeListener('data', audioHandler);
                 encoder.stdin.end();
                 encoder.kill();
+                this.activeFallbackStreams = Math.max(0, this.activeFallbackStreams - 1);
+                console.log(`[audio 3000] MP3 fallback disconnected from ${clientAddress} (${this.activeFallbackStreams} active)`);
             };
 
             req.on('close', close);
@@ -296,6 +305,8 @@ export class Config {
         router.post('/audio/webrtc/offer', async (req, res) => {
             const audio = app.rcScanner?.audio;
             const offer = req.body?.sdp;
+            const port = viewOnly ? app.config.nodejs.viewer.port : app.config.nodejs.port;
+            const clientAddress = getClientAddress(req);
 
             if (!audio || typeof offer !== 'string' || offer.length === 0) {
                 return res.status(400).send({ error: 'A WebRTC offer and audio input are required' });
@@ -307,6 +318,7 @@ export class Config {
             const source = new wrtc.nonstandard.RTCAudioSource();
             const track = source.createTrack();
             let closed = false;
+            let streamTracked = false;
             let viewerSessionId;
             let viewerStreamTracked = false;
 
@@ -325,6 +337,11 @@ export class Config {
                 audio.removeListener('data', audioHandler);
                 track.stop();
                 peer.close();
+
+                if (streamTracked) {
+                    this.activeWebRtcStreams = Math.max(0, this.activeWebRtcStreams - 1);
+                    console.log(`[audio ${port}] WebRTC disconnected from ${clientAddress} (${this.activeWebRtcStreams} active)`);
+                }
 
                 if (viewerStreamTracked) {
                     app.rcScanner?.ws?.removeViewerStream();
@@ -351,6 +368,10 @@ export class Config {
                 await peer.setLocalDescription(answer);
                 await waitForIceGathering(peer);
 
+                streamTracked = true;
+                this.activeWebRtcStreams++;
+                console.log(`[audio ${port}] WebRTC connected from ${clientAddress} (${this.activeWebRtcStreams} active)`);
+
                 if (viewOnly && !viewerStreamTracked) {
                     viewerStreamTracked = true;
                     viewerSessionId = crypto.randomUUID();
@@ -366,6 +387,7 @@ export class Config {
 
             } catch (error) {
                 close();
+                console.warn(`[audio ${port}] WebRTC failed for ${clientAddress}: ${error.message || 'unknown error'}`);
                 return res.status(500).send({ error: error.message || 'Unable to establish WebRTC audio' });
             }
         });
@@ -465,6 +487,13 @@ async function getTurnIceServers() {
 
 function getEnvSecret(name) {
     return (process.env[name] || '').trim().replace(/^['"]+|['"]+$/g, '');
+}
+
+function getClientAddress(req) {
+    const forwarded = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'];
+    const address = Array.isArray(forwarded) ? forwarded[0] : String(forwarded || '').split(',')[0].trim();
+
+    return address || req.socket?.remoteAddress || 'unknown';
 }
 
 async function getIceServers() {
