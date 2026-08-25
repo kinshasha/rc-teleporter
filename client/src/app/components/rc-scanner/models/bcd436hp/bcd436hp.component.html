@@ -1,6 +1,6 @@
 <div [ngClass]="{ 'dimmer-low': dimmer === 1, 'dimmer-middle': dimmer === 2, 'dimmer-high': dimmer === 3 }">
     <button *ngIf="!readOnly && injectedAudioLabel" class="led audio-toggle" type="button"
-        [ngClass]="[led, injectedAudioEnabled ? 'audio-enabled' : 'audio-disabled', injectedAudioActive ? 'audio-active' : '']"
+        [ngClass]="[led, injectedAudioEnabled ? 'audio-enabled' : 'audio-disabled', injectedAudioEnabled && injectedAudioActive ? 'audio-active' : '']"
         [attr.aria-label]="injectedAudioEnabled ? 'Turn off additional audio' : 'Turn on additional audio'"
         [attr.aria-pressed]="injectedAudioEnabled" (click)="toggleInjectedAudio()"></button>
     <div *ngIf="readOnly || !injectedAudioLabel" class="led" [ngClass]="led"></div>
