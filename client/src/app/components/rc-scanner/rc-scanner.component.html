@@ -7,6 +7,10 @@
     </ng-container>
 </div>
 
+<div *ngIf="injectedAudioLabel" class="injected-audio-notice" role="status">
+    Additional audio: {{ injectedAudioLabel }}
+</div>
+
 <ng-container *ngIf="!isReadOnly">
 <button class="wake-lock-toggle" type="button" [class.is-active]="screenWakeLockActive"
     [class.is-unavailable]="screenWakeLockStatus === 'unavailable'"

@@ -31,6 +31,7 @@ declare global {
 
 export interface AppRcScannerConfig {
     audioDeviceId: number;
+    injectedAudioLabel?: string;
     model: string;
     reconnectInterval: number;
     sampleRate: number;

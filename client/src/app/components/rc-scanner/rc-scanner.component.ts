@@ -41,6 +41,8 @@ export class AppRcScannerComponent implements OnDestroy {
 
     isReadOnly = false;
 
+    injectedAudioLabel = '';
+
     model: string = 'unknown';
 
     screenWakeLockActive = false;
@@ -62,6 +64,7 @@ export class AppRcScannerComponent implements OnDestroy {
         this.subscription.add(this.rcScannerService.config.subscribe((config: AppRcScannerConfig) => {
             this.model = config.model || 'unknown';
             this.audioDeviceId = typeof config.audioDeviceId === 'number' ? config.audioDeviceId : -1;
+            this.injectedAudioLabel = config.injectedAudioLabel || '';
             this.isReadOnly = config.viewOnly === true;
 
             if (this.isReadOnly) {

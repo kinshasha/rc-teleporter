@@ -20,6 +20,15 @@
   width: 100%;
 }
 
+.injected-audio-notice {
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  margin: 4px auto 10px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
 .wake-lock-toggle {
   background: rgba(55, 55, 55, 0.96);
   border: 1px solid rgba(255, 255, 255, 0.2);

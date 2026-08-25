@@ -20,6 +20,7 @@
 'use strict';
 
 import EventEmitter from 'events';
+import { spawn } from 'child_process';
 import portAudio from 'naudiodon2';
 
 export class Audio extends EventEmitter {
@@ -29,6 +30,10 @@ export class Audio extends EventEmitter {
         this.config = ctx.config.audio;
 
         this.retryTimer = null;
+        this.injectRetryTimer = null;
+        this.injectedMixer = null;
+        this.injectedMixerActive = false;
+        this.stopping = false;
 
         this.start();
     }
@@ -37,6 +42,9 @@ export class Audio extends EventEmitter {
         if (this.stream) {
             return;
         }
+
+        this.stopping = false;
+        this.startInjectedMixer();
 
         const newStream = () => {
             let stream;
@@ -53,15 +61,15 @@ export class Audio extends EventEmitter {
                 });
 
                 stream.on('data', (data) => {
-                    if (this.config.squelch > 0) {
-                        const array = new Int16Array(data.buffer);
+                    if (this.injectedMixer?.stdin.writable) {
+                        this.injectedMixer.stdin.write(data);
 
-                        if (array.some((pcm) => Math.abs(pcm) >= this.config.squelch)) {
-                            this.emit('data', data.buffer);
+                        if (!this.injectedMixerActive) {
+                            this.emitScannerAudio(data);
                         }
 
                     } else {
-                        this.emit('data', data.buffer);
+                        this.emitScannerAudio(data);
                     }
                 });
 
@@ -97,6 +105,8 @@ export class Audio extends EventEmitter {
     }
 
     stop() {
+        this.stopping = true;
+
         if (this.retryTimer) {
             clearInterval(this.retryTimer);
             this.retryTimer = null;
@@ -106,6 +116,8 @@ export class Audio extends EventEmitter {
             this.stream.destroy();
             this.stream = undefined;
         }
+
+        this.stopInjectedMixer();
     }
 
     restart() {
@@ -138,4 +150,84 @@ export class Audio extends EventEmitter {
             }
         }, this.config.reconnectInterval);
     }
+
+    emitScannerAudio(data) {
+        const samples = new Int16Array(data.buffer, data.byteOffset, Math.floor(data.byteLength / 2));
+
+        if (this.config.squelch > 0 && !samples.some((pcm) => Math.abs(pcm) >= this.config.squelch)) {
+            return;
+        }
+
+        this.emit('data', toArrayBuffer(data));
+    }
+
+    startInjectedMixer() {
+        const injectedStream = this.config.injectedStream;
+
+        if (!injectedStream?.enabled || this.injectedMixer) {
+            return;
+        }
+
+        const sampleRate = String(this.config.sampleRate);
+        const mixer = spawn('ffmpeg', [
+            '-hide_banner', '-loglevel', 'error',
+            '-f', 's16le', '-ar', sampleRate, '-ac', '1', '-i', 'pipe:0',
+            '-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '5', '-i', injectedStream.url,
+            '-filter_complex', `[1:a]aresample=${sampleRate},aformat=channel_layouts=mono:sample_rates=${sampleRate}[remote];[0:a][remote]amix=inputs=2:weights='1 ${injectedStream.volume}':normalize=0:dropout_transition=0[mixed]`,
+            '-map', '[mixed]', '-f', 's16le', '-ar', sampleRate, '-ac', '1', 'pipe:1',
+        ], { stdio: ['pipe', 'pipe', 'ignore'] });
+
+        mixer.stdin.on('error', () => undefined);
+        mixer.stdout.on('data', (data) => {
+            if (!this.injectedMixerActive) {
+                this.injectedMixerActive = true;
+                this.emit('status', `Injected audio active: ${injectedStream.label}`);
+            }
+
+            this.emit('data', toArrayBuffer(data));
+        });
+        mixer.on('error', (error) => this.handleInjectedMixerStop(error.message));
+        mixer.on('close', (code) => this.handleInjectedMixerStop(`exit ${code ?? 'unknown'}`));
+
+        this.injectedMixer = mixer;
+    }
+
+    stopInjectedMixer() {
+        if (this.injectRetryTimer) {
+            clearTimeout(this.injectRetryTimer);
+            this.injectRetryTimer = null;
+        }
+
+        if (this.injectedMixer) {
+            this.injectedMixer.removeAllListeners();
+            this.injectedMixer.stdin.end();
+            this.injectedMixer.kill();
+            this.injectedMixer = null;
+        }
+
+        this.injectedMixerActive = false;
+    }
+
+    handleInjectedMixerStop(reason) {
+        if (!this.injectedMixer) {
+            return;
+        }
+
+        this.injectedMixer = null;
+        this.injectedMixerActive = false;
+
+        if (this.stopping || !this.config.injectedStream?.enabled || this.injectRetryTimer) {
+            return;
+        }
+
+        this.emit('status', `Injected audio stopped (${reason}); retrying...`);
+        this.injectRetryTimer = setTimeout(() => {
+            this.injectRetryTimer = null;
+            this.startInjectedMixer();
+        }, this.config.reconnectInterval);
+    }
+}
+
+function toArrayBuffer(data) {
+    return data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
 }

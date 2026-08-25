@@ -28,6 +28,7 @@ import { unknown } from './models.js';
 export class Config {
     constructor(app) {
         const config = app.config.rcScanner;
+        const injectedStream = config?.audio?.injectedStream;
 
         this.viewerSessions = new Map();
         this.activeFallbackStreams = 0;
@@ -46,6 +47,16 @@ export class Config {
             squelch: typeof config?.audio?.squelch === 'number'
                 ? config.audio.squelch
                 : parseInt(process.env.RC_AUDIO_SQUELCH, 10) || 100,
+            injectedStream: {
+                enabled: injectedStream?.enabled === true && typeof injectedStream.url === 'string' && injectedStream.url.length > 0,
+                label: typeof injectedStream?.label === 'string' && injectedStream.label.trim().length > 0
+                    ? injectedStream.label.trim()
+                    : 'Additional audio',
+                url: typeof injectedStream?.url === 'string' ? injectedStream.url.trim() : '',
+                volume: typeof injectedStream?.volume === 'number' && injectedStream.volume >= 0 && injectedStream.volume <= 1
+                    ? injectedStream.volume
+                    : 0.35,
+            },
         };
 
         this.com = {
@@ -107,6 +118,7 @@ export class Config {
                 model: this.model,
                 reconnectInterval: this.webSocket.reconnectInterval,
                 sampleRate: this.audio.sampleRate,
+                injectedAudioLabel: this.audio.injectedStream.enabled ? this.audio.injectedStream.label : undefined,
             });
         });
 
@@ -275,6 +287,7 @@ export class Config {
                     reconnectInterval: this.webSocket.reconnectInterval,
                     sampleRate: this.audio.sampleRate,
                     viewOnly: true,
+                    injectedAudioLabel: this.audio.injectedStream.enabled ? this.audio.injectedStream.label : undefined,
                 });
             });
 
