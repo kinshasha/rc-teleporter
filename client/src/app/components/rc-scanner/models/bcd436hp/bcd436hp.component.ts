@@ -182,6 +182,10 @@ export class AppRcScannerBcd436hpComponent implements OnDestroy, OnInit {
 
     @HostListener('document:keydown.f')
     onFunction(): void {
+        if (this.enableFromTopRow()) {
+            return;
+        }
+
         this.rcScannerService.send('KEY,F,P');
     }
 
@@ -210,6 +214,10 @@ export class AppRcScannerBcd436hpComponent implements OnDestroy, OnInit {
 
     @HostListener('document:keydown.m')
     onMenu(): void {
+        if (this.enableFromTopRow()) {
+            return;
+        }
+
         this.rcScannerService.send('KEY,M,P');
     }
 
@@ -225,11 +233,19 @@ export class AppRcScannerBcd436hpComponent implements OnDestroy, OnInit {
 
     @HostListener('document:keydown.arrowleft')
     onVfoLeft(): void {
+        if (this.enableFromTopRow()) {
+            return;
+        }
+
         this.rcScannerService.send('KEY,<,P');
     }
 
     @HostListener('document:keydown.arrowright')
     onVfoRight(): void {
+        if (this.enableFromTopRow()) {
+            return;
+        }
+
         this.rcScannerService.send('KEY,>,P');
     }
 
@@ -237,6 +253,10 @@ export class AppRcScannerBcd436hpComponent implements OnDestroy, OnInit {
     onVfoPush(event?: Event): void {
         if (event instanceof Event) {
             event.preventDefault();
+        }
+
+        if (this.enableFromTopRow()) {
+            return;
         }
 
         this.rcScannerService.send('KEY,^,P');
@@ -249,6 +269,16 @@ export class AppRcScannerBcd436hpComponent implements OnDestroy, OnInit {
 
     toggleFullscreen(): void {
         this.rcScannerService.toggleFullscreen();
+    }
+
+    private enableFromTopRow(): boolean {
+        if (this.readOnly || this.powerOn) {
+            return false;
+        }
+
+        this.powerOn = true;
+        void this.rcScannerService.powerOn();
+        return true;
     }
 
     private parseData(message: string): void {
