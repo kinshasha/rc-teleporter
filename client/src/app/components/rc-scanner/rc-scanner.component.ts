@@ -23,6 +23,7 @@ import {
     AppRcScannerAudioDevice,
     AppRcScannerConfig,
     AppRcScannerService,
+    AppRcScannerWebRtcMetrics,
 } from './rc-scanner.service';
 
 @Component({
@@ -38,6 +39,13 @@ export class AppRcScannerComponent implements OnDestroy {
     audioStatus = 'Loading audio inputs...';
 
     audioPanelOpen = false;
+
+    webRtcMetricsOpen = false;
+
+    webRtcMetrics: AppRcScannerWebRtcMetrics = {
+        available: false,
+        connectionState: 'not connected',
+    };
 
     isReadOnly = false;
 
@@ -65,6 +73,8 @@ export class AppRcScannerComponent implements OnDestroy {
     private screenWakeLockVideo: HTMLVideoElement | undefined;
 
     private subscription = new Subscription();
+
+    private webRtcMetricsTimer: number | undefined;
 
     constructor(ngElementRef: ElementRef, private rcScannerService: AppRcScannerService) {
         this.subscription.add(this.rcScannerService.config.subscribe((config: AppRcScannerConfig) => {
@@ -122,6 +132,7 @@ export class AppRcScannerComponent implements OnDestroy {
 
     ngOnDestroy(): void {
         this.subscription.unsubscribe();
+        this.stopWebRtcMetrics();
         void this.releaseScreenWakeLock();
     }
 
@@ -171,10 +182,41 @@ export class AppRcScannerComponent implements OnDestroy {
             .catch(() => this.audioStatus = 'Safari blocked audio playback. Tap this button again.');
     }
 
-    playAudioTestTone(): void {
-        this.rcScannerService.playAudioTestTone()
-            .then(() => this.audioStatus = 'Test tone played through the iPhone speaker.')
-            .catch(() => this.audioStatus = 'Safari could not play the test tone.');
+    toggleWebRtcMetrics(): void {
+        this.webRtcMetricsOpen = !this.webRtcMetricsOpen;
+
+        if (this.webRtcMetricsOpen) {
+            void this.refreshWebRtcMetrics();
+            this.webRtcMetricsTimer = window.setInterval(() => void this.refreshWebRtcMetrics(), 1000);
+
+        } else {
+            this.stopWebRtcMetrics();
+        }
+    }
+
+    formatMetric(value: number | undefined, suffix: string, decimals = 0): string {
+        return typeof value === 'number' && Number.isFinite(value)
+            ? `${value.toFixed(decimals)}${suffix}`
+            : 'n/a';
+    }
+
+    private async refreshWebRtcMetrics(): Promise<void> {
+        try {
+            this.webRtcMetrics = await this.rcScannerService.getWebRtcMetrics();
+
+        } catch (error) {
+            this.webRtcMetrics = {
+                available: false,
+                connectionState: 'stats unavailable',
+            };
+        }
+    }
+
+    private stopWebRtcMetrics(): void {
+        if (this.webRtcMetricsTimer !== undefined) {
+            window.clearInterval(this.webRtcMetricsTimer);
+            this.webRtcMetricsTimer = undefined;
+        }
     }
 
     toggleAudioPanel(): void {
