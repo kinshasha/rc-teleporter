@@ -196,6 +196,12 @@ export class AppRcScannerComponent implements OnDestroy {
         }
     }
 
+    playAudioTestTone(): void {
+        this.rcScannerService.playAudioTestTone()
+            .then(() => this.audioStatus = 'Local test tone played.')
+            .catch(() => this.audioStatus = 'Unable to play the local test tone.');
+    }
+
     formatMetric(value: number | undefined, suffix: string, decimals = 0): string {
         return typeof value === 'number' && Number.isFinite(value)
             ? `${value.toFixed(decimals)}${suffix}`

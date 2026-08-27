@@ -49,6 +49,7 @@
 
             <button class="audio-drawer__button" type="button" [class.is-selected]="webRtcMetricsOpen"
                 (click)="toggleWebRtcMetrics()">{{ webRtcMetricsOpen ? 'Hide WebRTC metrics' : 'Show WebRTC metrics' }}</button>
+            <button class="audio-drawer__button" type="button" (click)="playAudioTestTone()">Test local audio</button>
             <div *ngIf="webRtcMetricsOpen" class="webrtc-metrics" role="status" aria-live="polite">
                 <div class="webrtc-metrics__heading">WebRTC audio</div>
                 <div class="webrtc-metrics__row"><span>Connection</span><strong>{{ webRtcMetrics.connectionState }}</strong></div>
