@@ -51,6 +51,20 @@ export interface AppRcScannerAudioDevice {
     name: string;
 }
 
+export interface AppRcScannerWebRtcMetrics {
+    available: boolean;
+    connectionState: string;
+    roundTripTimeMs?: number;
+    jitterMs?: number;
+    packetsLost?: number;
+    packetsReceived?: number;
+    packetLossPercent?: number;
+    jitterBufferDelayMs?: number;
+    concealedSamples?: number;
+    totalSamplesReceived?: number;
+    concealmentPercent?: number;
+}
+
 export interface AppRcScannerMessage {
     close?: boolean;
     data?: string;
@@ -159,6 +173,73 @@ export class AppRcScannerService implements OnDestroy {
         this.testToneAudio?.pause();
         this.testToneAudio = new Audio(this.getUrl('audio/test.wav'));
         await this.testToneAudio.play();
+    }
+
+    async getWebRtcMetrics(): Promise<AppRcScannerWebRtcMetrics> {
+        const peer = this.webRtcPeer;
+        const metrics: AppRcScannerWebRtcMetrics = {
+            available: Boolean(peer),
+            connectionState: peer?.connectionState || 'not connected',
+        };
+
+        if (!peer) {
+            return metrics;
+        }
+
+        const report = await peer.getStats();
+        let received = 0;
+        let lost = 0;
+        let jitter = 0;
+        let jitterBufferDelay = 0;
+        let jitterBufferEmitted = 0;
+        let concealed = 0;
+        let totalSamples = 0;
+
+        report.forEach((rawStat) => {
+            const stat = rawStat as RTCStats & Record<string, unknown>;
+
+            if (stat.type === 'candidate-pair'
+                && (stat.selected === true || stat.nominated === true || stat.state === 'succeeded')
+                && typeof stat.currentRoundTripTime === 'number') {
+                metrics.roundTripTimeMs = stat.currentRoundTripTime * 1000;
+            }
+
+            if (stat.type !== 'inbound-rtp' || (stat.kind !== 'audio' && stat.mediaType !== 'audio')) {
+                return;
+            }
+
+            received += typeof stat.packetsReceived === 'number' ? stat.packetsReceived : 0;
+            lost += typeof stat.packetsLost === 'number' ? stat.packetsLost : 0;
+            jitter = typeof stat.jitter === 'number' ? stat.jitter : jitter;
+            jitterBufferDelay += typeof stat.jitterBufferDelay === 'number' ? stat.jitterBufferDelay : 0;
+            jitterBufferEmitted += typeof stat.jitterBufferEmittedCount === 'number'
+                ? stat.jitterBufferEmittedCount
+                : 0;
+            concealed += typeof stat.concealedSamples === 'number' ? stat.concealedSamples : 0;
+            totalSamples += typeof stat.totalSamplesReceived === 'number' ? stat.totalSamplesReceived : 0;
+        });
+
+        if (received > 0 || lost > 0) {
+            metrics.packetsReceived = received;
+            metrics.packetsLost = lost;
+            metrics.packetLossPercent = ((lost / (received + lost)) * 100);
+        }
+
+        if (jitter > 0) {
+            metrics.jitterMs = jitter * 1000;
+        }
+
+        if (jitterBufferEmitted > 0) {
+            metrics.jitterBufferDelayMs = (jitterBufferDelay / jitterBufferEmitted) * 1000;
+        }
+
+        if (totalSamples > 0) {
+            metrics.totalSamplesReceived = totalSamples;
+            metrics.concealedSamples = concealed;
+            metrics.concealmentPercent = (concealed / totalSamples) * 100;
+        }
+
+        return metrics;
     }
 
     ngOnDestroy(): void {

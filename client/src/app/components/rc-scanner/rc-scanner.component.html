@@ -47,8 +47,18 @@
                 </button>
             </div>
 
-            <button class="audio-drawer__button" type="button" (click)="enableAudioPlayback()">Enable iPhone playback</button>
-            <button class="audio-drawer__button" type="button" (click)="playAudioTestTone()">Test iPhone speaker</button>
+            <button class="audio-drawer__button" type="button" [class.is-selected]="webRtcMetricsOpen"
+                (click)="toggleWebRtcMetrics()">{{ webRtcMetricsOpen ? 'Hide WebRTC metrics' : 'Show WebRTC metrics' }}</button>
+            <div *ngIf="webRtcMetricsOpen" class="webrtc-metrics" role="status" aria-live="polite">
+                <div class="webrtc-metrics__heading">WebRTC audio</div>
+                <div class="webrtc-metrics__row"><span>Connection</span><strong>{{ webRtcMetrics.connectionState }}</strong></div>
+                <div class="webrtc-metrics__row"><span>Network RTT</span><strong>{{ formatMetric(webRtcMetrics.roundTripTimeMs, ' ms') }}</strong></div>
+                <div class="webrtc-metrics__row"><span>Jitter</span><strong>{{ formatMetric(webRtcMetrics.jitterMs, ' ms', 1) }}</strong></div>
+                <div class="webrtc-metrics__row"><span>Packet loss</span><strong>{{ formatMetric(webRtcMetrics.packetLossPercent, '%', 2) }}</strong></div>
+                <div class="webrtc-metrics__row"><span>Audio buffer</span><strong>{{ formatMetric(webRtcMetrics.jitterBufferDelayMs, ' ms', 1) }}</strong></div>
+                <div class="webrtc-metrics__row"><span>Concealment</span><strong>{{ formatMetric(webRtcMetrics.concealmentPercent, '%', 2) }}</strong></div>
+                <div class="webrtc-metrics__note">Browser-reported transport and jitter-buffer estimates.</div>
+            </div>
             <button class="audio-drawer__button" type="button" (click)="refreshAudioDevices()">Refresh</button>
         </div>
 
