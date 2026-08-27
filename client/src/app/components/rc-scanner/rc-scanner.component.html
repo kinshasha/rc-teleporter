@@ -52,7 +52,7 @@
             <div *ngIf="webRtcMetricsOpen" class="webrtc-metrics" role="status" aria-live="polite">
                 <div class="webrtc-metrics__heading">WebRTC audio</div>
                 <div class="webrtc-metrics__row"><span>Connection</span><strong>{{ webRtcMetrics.connectionState }}</strong></div>
-                <div class="webrtc-metrics__row"><span>Network RTT</span><strong>{{ formatMetric(webRtcMetrics.roundTripTimeMs, ' ms') }}</strong></div>
+                <div class="webrtc-metrics__row"><span>Network RTT</span><strong>{{ formatMetric(webRtcMetrics.roundTripTimeMs, ' ms') }} ({{ formatMetric(webRtcMetrics.roundTripTimeAverageMs, ' ms') }} avg)</strong></div>
                 <div class="webrtc-metrics__row"><span>Jitter</span><strong>{{ formatMetric(webRtcMetrics.jitterMs, ' ms', 1) }}</strong></div>
                 <div class="webrtc-metrics__row"><span>Packet loss</span><strong>{{ formatMetric(webRtcMetrics.packetLossPercent, '%', 2) }}</strong></div>
                 <div class="webrtc-metrics__row"><span>Audio buffer</span><strong>{{ formatMetric(webRtcMetrics.jitterBufferDelayMs, ' ms', 1) }}</strong></div>

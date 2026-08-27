@@ -76,6 +76,8 @@ export class AppRcScannerComponent implements OnDestroy {
 
     private webRtcMetricsTimer: number | undefined;
 
+    private roundTripSamples: Array<{ timestamp: number; value: number }> = [];
+
     constructor(ngElementRef: ElementRef, private rcScannerService: AppRcScannerService) {
         this.subscription.add(this.rcScannerService.config.subscribe((config: AppRcScannerConfig) => {
             this.model = config.model || 'unknown';
@@ -202,7 +204,21 @@ export class AppRcScannerComponent implements OnDestroy {
 
     private async refreshWebRtcMetrics(): Promise<void> {
         try {
-            this.webRtcMetrics = await this.rcScannerService.getWebRtcMetrics();
+            const metrics = await this.rcScannerService.getWebRtcMetrics();
+            const now = Date.now();
+            const cutoff = now - 10000;
+
+            this.roundTripSamples = this.roundTripSamples.filter((sample) => sample.timestamp >= cutoff);
+
+            if (typeof metrics.roundTripTimeMs === 'number') {
+                this.roundTripSamples.push({ timestamp: now, value: metrics.roundTripTimeMs });
+            }
+
+            const roundTripTimeAverageMs = this.roundTripSamples.length > 0
+                ? this.roundTripSamples.reduce((total, sample) => total + sample.value, 0) / this.roundTripSamples.length
+                : undefined;
+
+            this.webRtcMetrics = { ...metrics, roundTripTimeAverageMs };
 
         } catch (error) {
             this.webRtcMetrics = {
@@ -217,6 +233,8 @@ export class AppRcScannerComponent implements OnDestroy {
             window.clearInterval(this.webRtcMetricsTimer);
             this.webRtcMetricsTimer = undefined;
         }
+
+        this.roundTripSamples = [];
     }
 
     toggleAudioPanel(): void {

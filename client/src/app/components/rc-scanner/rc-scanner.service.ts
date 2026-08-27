@@ -55,6 +55,7 @@ export interface AppRcScannerWebRtcMetrics {
     available: boolean;
     connectionState: string;
     roundTripTimeMs?: number;
+    roundTripTimeAverageMs?: number;
     jitterMs?: number;
     packetsLost?: number;
     packetsReceived?: number;
