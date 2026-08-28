@@ -548,6 +548,37 @@ async function getTurnIceServers() {
         : [];
 }
 
+export async function validateTurnCredentials() {
+    const keyId = getEnvSecret('CF_TURN_KEY_ID');
+    const apiToken = getEnvSecret('CF_TURN_API_TOKEN');
+
+    if (!keyId || !apiToken) {
+        return { accepted: false, configured: false, serverCount: 0 };
+    }
+
+    try {
+        const iceServers = await getTurnIceServers();
+
+        if (!iceServers.length) {
+            return {
+                accepted: false,
+                configured: true,
+                error: 'Cloudflare returned no ICE servers',
+                serverCount: 0,
+            };
+        }
+
+        return { accepted: true, configured: true, serverCount: iceServers.length };
+    } catch (error) {
+        return {
+            accepted: false,
+            configured: true,
+            error: error.message || 'credential request failed',
+            serverCount: 0,
+        };
+    }
+}
+
 function getEnvSecret(name) {
     return (process.env[name] || '').trim().replace(/^['"]+|['"]+$/g, '');
 }

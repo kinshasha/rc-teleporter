@@ -32,6 +32,7 @@ import https from 'https';
 import path from 'path';
 import url from 'url';
 
+import { validateTurnCredentials } from './lib/rc-scanner/config.js';
 import { RcScanner } from './lib/rc-scanner/main.js';
 
 export class App extends EventEmitter {
@@ -238,6 +239,8 @@ export class App extends EventEmitter {
                 });
             }
 
+            logTurnStartupStatus();
+
             this.emit('ready');
         });
     }
@@ -276,6 +279,18 @@ function getClientAddress(req) {
     const address = Array.isArray(forwarded) ? forwarded[0] : String(forwarded || '').split(',')[0].trim();
 
     return address || req.socket?.remoteAddress || 'unknown';
+}
+
+async function logTurnStartupStatus() {
+    const result = await validateTurnCredentials();
+
+    if (!result.configured) {
+        console.warn('[TURN] credentials not configured; direct WebRTC only');
+    } else if (result.accepted) {
+        console.log(`[TURN] credentials accepted (${result.serverCount} ICE server entries)`);
+    } else {
+        console.error(`[TURN] credentials rejected: ${result.error}`);
+    }
 }
 
 function eventTimestamp() {
