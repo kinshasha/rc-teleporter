@@ -1,0 +1,17 @@
+[Unit]
+Description=RC Teleporter
+After=network.target
+
+[Service]
+# Set WorkingDirectory, User, and Group to the real install on this host.
+WorkingDirectory=/opt/rc-teleporter
+ExecStart=/usr/bin/node server
+Restart=always
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=rc-teleporter
+User=rc-teleporter
+Group=rc-teleporter
+
+[Install]
+WantedBy=multi-user.target

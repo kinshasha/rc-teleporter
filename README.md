@@ -24,7 +24,7 @@ Working differences versus the original project:
 
 ## Supported models
 
-At the moment, *RC Scanner* only works with a limited number of radio scanners.
+At the moment, *RC Teleporter* only works with a limited number of radio scanners.
 
 Supported models:
 
@@ -35,9 +35,9 @@ Other scanner models can be added on request as long as I can get one. Any lease
 
 ## Supported platforms
 
-Since *RC Scanner* uses libraries [Node SerialPort](https://serialport.io/) and [Naudiodon2](https://github.com/csukuangfj/naudiodon2), which are both multiplatform, there should'nt be to much trouble running it on other platforms. If you do try *RC Scanner*, please share you experience on [Gitter](https://gitter.im/rc-scanner/Lobby?utm_source=share-link&utm_medium=link&utm_campaign=share-link)
+Since *RC Teleporter* uses [Node SerialPort](https://serialport.io/) and [Naudiodon2](https://github.com/csukuangfj/naudiodon2), which are both multiplatform, it should run on other hosts without much trouble. Please open an issue with what you tried.
 
-On macOS, USB-connected scanners usually show up as `/dev/cu.usbserial*` or `/dev/cu.usbmodem*` devices. Leave `com.port` set to `auto` in `server/config.json`, or set `RC_COM_PORT=auto`, and RC Scanner will pick the first matching serial device it finds.
+On macOS, USB-connected scanners usually show up as `/dev/cu.usbserial*` or `/dev/cu.usbmodem*` devices. Leave `com.port` set to `auto` in `server/config.json`, or set `RC_COM_PORT=auto`, and RC Teleporter will pick the first matching serial device it finds.
 
 ## Features
 
@@ -54,7 +54,7 @@ On macOS, USB-connected scanners usually show up as `/dev/cu.usbserial*` or `/de
 
 ## Quick start
 
-It is fairly easy to have *RC Scanner* up and running.
+It is fairly easy to have *RC Teleporter* up and running.
 
 Ensure that your operating system is fully updated and that the prerequisites are installed:
 
@@ -64,11 +64,11 @@ Ensure that your operating system is fully updated and that the prerequisites ar
 * [python](https://www.python.org/downloads/)
 * openssl
 
-Then clone the *RC Scanner* code and run it:
+Then clone the *RC Teleporter* code and run it:
 
 ```bash
-$ git clone https://github.com/chuot/rc-scanner.git
-Cloning into 'rc-scanner'...
+$ git clone https://github.com/kinshasha/rc-teleporter.git
+Cloning into 'rc-teleporter'...
 remote: Enumerating objects: 3821, done.
 remote: Counting objects: 100% (3821/3821), done.
 remote: Compressing objects: 100% (2975/2975), done.
@@ -76,7 +76,7 @@ Receiving objects: 100% (3821/3821), 6.87 MiB | 10.65 MiB/s, done.
 remote: Total 3821 (delta 1693), reused 2156 (delta 662)
 Resolving deltas: 100% (1693/1693), done.
 
-$ cd rc-scanner
+$ cd rc-teleporter
 
 $ Installing node modules... done
 Building client app... done
@@ -84,9 +84,9 @@ Server is running at http://0.0.0.0:3000
 Connected to /dev/ttyUSB0
 ```
 
-Note that the first time you start *RC Scanner*, it will be longer to do so as it has to install required node modules and build the progressive web app.
+Note that the first time you start *RC Teleporter*, it will be longer to do so as it has to install required node modules and build the progressive web app.
 
-A default configuration file `rc-scanner/server/.env` will be created.
+A default configuration file `server/.env` will be created.
 
 At this point, you should review the configuration file to ensure that it is conform to your setup.
 

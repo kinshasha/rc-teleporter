@@ -23,9 +23,9 @@
     "engines": {
         "node": ">=14.0"
     },
-    "license": "LICENSE",
+    "license": "GPL-3.0-or-later",
     "main": "index.js",
-    "name": "rc-scanner-server",
+    "name": "rc-teleporter-server",
     "nodemonConfig": {
         "ext": "js, json",
         "ignore": [
