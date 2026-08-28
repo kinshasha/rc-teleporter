@@ -269,7 +269,10 @@ export class Audio extends EventEmitter {
 
             const streamName = String(response.headers['icy-name'] || '').trim();
             if (streamName) {
-                this.updateInjectedStreamTitle(streamName, true);
+                if (this.updateInjectedStreamTitle(streamName, true)) {
+                    this.stopInjectedMetadataMonitor();
+                    return;
+                }
             }
 
             let audioBytesRemaining = metadataInterval;
@@ -313,7 +316,10 @@ export class Audio extends EventEmitter {
                     }
 
                     if (metadataBytesRemaining === 0) {
-                        this.updateInjectedStreamTitle(metadata.toString('utf8'));
+                        if (this.updateInjectedStreamTitle(metadata.toString('utf8'))) {
+                            this.stopInjectedMetadataMonitor();
+                            return;
+                        }
                         metadata = Buffer.alloc(0);
                         audioBytesRemaining = metadataInterval;
                     }
@@ -337,11 +343,12 @@ export class Audio extends EventEmitter {
         const title = (directTitle ? metadata : match?.[1])?.trim();
 
         if (!title || title === this.injectedStreamTitle) {
-            return;
+            return false;
         }
 
         this.injectedStreamTitle = title;
         this.emit('status', `Injected stream title: ${title}`);
+        return true;
     }
 
     stopInjectedMixer() {
