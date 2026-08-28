@@ -35,11 +35,37 @@ import url from 'url';
 import { validateTurnCredentials } from './lib/rc-scanner/config.js';
 import { RcScanner } from './lib/rc-scanner/main.js';
 
+const dirname = path.dirname(url.fileURLToPath(import.meta.url));
+const startupLog = path.resolve(process.env.APP_DATA || dirname, 'npm-start.log');
+
+function recordStartup(message) {
+    try {
+        fs.appendFileSync(startupLog, `${new Date().toISOString()} pid=${process.pid} ${message}\n`);
+    } catch (error) {
+        process.stderr.write(`Unable to write startup log: ${error.message}\n`);
+    }
+}
+
+process.on('uncaughtException', (error) => {
+    recordStartup(`server uncaughtException: ${error.stack || error.message}`);
+    process.exitCode = 1;
+});
+
+process.on('unhandledRejection', (reason) => {
+    const message = reason instanceof Error ? reason.stack || reason.message : String(reason);
+    recordStartup(`server unhandledRejection: ${message}`);
+    process.exitCode = 1;
+});
+
+process.on('exit', (code) => {
+    recordStartup(`server exit code=${code}`);
+});
+
+recordStartup(`server process begin args=${JSON.stringify(process.argv.slice(2))}`);
+
 export class App extends EventEmitter {
     constructor() {
         super();
-
-        const dirname = path.dirname(url.fileURLToPath(import.meta.url));
 
         const configFile = path.resolve(process.env.APP_DATA || dirname, 'config.json');
 
