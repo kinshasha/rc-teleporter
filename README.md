@@ -1,10 +1,8 @@
 # RC Teleporter
 
-*RC Scanner*, or Remote Controlled Scanner, is a progressive web interface which allows you to remotely control your scanner and receive audio from anywhere in the world. *RC Scanner* is degined to works well on desktop and mobile devices.
+RC Teleporter is a progressive web interface for remotely controlling a Uniden scanner and receiving its audio, on desktop and mobile.
 
-Need help?
-
-[![Chat](https://img.shields.io/gitter/room/rc-scanner/Lobby.svg)](https://gitter.im/rc-scanner/Lobby?utm_source=share-link&utm_medium=link&utm_campaign=share-link)
+Issues: https://github.com/kinshasha/rc-teleporter/issues
 
 
 ## What changed from original rc-scanner
