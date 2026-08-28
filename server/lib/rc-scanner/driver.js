@@ -36,7 +36,7 @@ export class Driver {
             if (ctx.config.model === unknown) {
                 console.error('\n!!! WARNING: Unknown scanner model defined in config.json !!!\n');
             } else {
-                console.error(`\n!!! WARNING: Unknown scanner model: ${ctx.config.model} !!!\n');
+                console.error(`\n!!! WARNING: Unknown scanner model: ${ctx.config.model} !!!\n`);
             }
 
             return new Unknown(ctx);
