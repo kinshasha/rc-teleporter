@@ -65,7 +65,6 @@ Serve the existing built client assets unchanged. Preserve its HTTP routes, WebS
 
 - Start the interactive/control service before optional features; scanner display should be usable even if TURN, injected audio, or audio-device listing is delayed.
 - Start audio capture lazily on the first listener if practical, and stop it after a brief idle period.
-- Keep runtime dependencies outside synchronised/indexed folders such as `~/Documents` when macOS file-provider or provenance delays occur. Production startup must not require frontend build tooling or nodemon.
 - Provide health/readiness endpoints for display adapter, serial link, capture process, audio clients, and TURN status.
 - On macOS, avoid creating child-process storms; use supervised single instances for capture and injected-stream decoding.
 
