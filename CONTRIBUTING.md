@@ -1,31 +1,28 @@
-# Guide lines for contributing to [Rc Scanner](https://github.com/chuot/rc-scanner)
+# Contributing to RC Teleporter
 
-Please follow these simple guidelines to contribute to [Rc Scanner](https://github.com/chuot/rc-scanner). Discuss the change first through [GitHub Issues](https://github.com/chuot/rc-scanner/issues), email, or any other method with the [owner and project manager](https://github.com/chuot).
+This is the working BCD436HP gateway at https://github.com/kinshasha/rc-teleporter
 
-## Support requests or general question
+`main` is the Mac scanner box. The Icom PCR1000 prototype is on the `pcr1000` branch.
 
-Any support request or general question is welcome in the [Gitter Rc Scanner Lobby](https://gitter.im/rc-scanner/Lobby). Do not create an issue for this, it will be rejected and closed immediately.
+## How to help
 
-Helping others on the (https://github.com/chuot/rc-scanner/wiki) is a good way for contributing to the project.
+Open an issue on this repo first, then a pull request against `main` (or `pcr1000` if the change is PCR-only).
 
-## Wiki pages
+Do not send support questions to the archived chuot/rc-scanner project or the old Gitter lobby.
 
-Any contribution to the [Rc Scanner Wiki](https://github.com/chuot/rc-scanner/wiki) is welcome and encouraged. It is impossible for the [owner and project manager](https://github.com/chuot) to cover all the [Rc Scanner](https://github.com/chuot/rc-scanner) use cases, sharing your own use cases with guided instructions will for sure benefit others.
+## Bugs
 
-It is also not possible for the [owner and project manager](https://github.com/chuot) to cover all the [Rc Scanner](https://github.com/chuot/rc-scanner) use cases, sharing your own use cases with guided instructions is sure to benefit others.
+Include:
 
-## Random Pull Requests
+* scanner model and firmware if you know it
+* host OS (this gateway currently runs on macOS)
+* `server/config.json` with secrets removed
+* what you did, what you expected, what happened
 
-To keep the project stable and well organized, random pull requests will be rejected if no issue have been previously opened and assigned first by the [owner and project manager](https://github.com/chuot).
+## Features
 
-## Bugs and feature requests
+Describe the use case. Serial-protocol ideas belong in `docs/serial-command-backlog.md` if they are BCD436HP remote commands.
 
-We use [GitHub Issues](https://github.com/chuot/rc-scanner/issues) to track bugs and feature requests.
+## License
 
-Open an [issue](https://github.com/chuot/rc-scanner/issues) that best describes the bug or feature request.
-
-For **bugs**, describe the environment in which you encounter it and explain step by step how to reproduce them.
-
-For **feature requests**, describe the reason and use case.
-
-Most of the time, the issue will be assigned to the [owner and project manager](https://github.com/chuot) and then resolved in a timely manner. In some cases, the issue will be identified as _help needed_ and then assigned to a volonteer contributor. Again, pull requests will be rejected if they are not related to a previously opened and assigned issue.
+Original rc-scanner is GPL-3.0. Keep new files under the same license. See `LICENSE` and `COPYRIGHT`.

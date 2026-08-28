@@ -3,9 +3,9 @@
     "engines": {
         "node": ">=14.0"
     },
-    "license": "LICENSE",
+    "license": "GPL-3.0-or-later",
     "main": "run.js",
-    "name": "rc-scanner",
+    "name": "rc-teleporter",
     "private": true,
     "scripts": {
         "list-audio": "node server list-audio",
