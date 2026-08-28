@@ -22,7 +22,6 @@ import { NgModule } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AppRcScannerBcd386tComponent } from './models/bcd386t/bcd386t.component';
 import { AppRcScannerBcd436hpComponent } from './models/bcd436hp/bcd436hp.component';
-import { AppRcScannerPcr1000Component } from './models/pcr1000/pcr1000.component';
 import { AppRcScannerUnknownComponent } from './models/unknown/unknown.component';
 import { AppRcScannerComponent } from './rc-scanner.component';
 import { AppRcScannerService } from './rc-scanner.service';
@@ -31,7 +30,6 @@ import { AppRcScannerService } from './rc-scanner.service';
     declarations: [
         AppRcScannerBcd386tComponent,
         AppRcScannerBcd436hpComponent,
-        AppRcScannerPcr1000Component,
         AppRcScannerComponent,
         AppRcScannerUnknownComponent,
     ],

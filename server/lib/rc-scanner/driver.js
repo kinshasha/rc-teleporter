@@ -13,17 +13,16 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  * ****************************************************************************
  */
 
 'use strict';
 
 import { UnidenSts } from './drivers/uniden-sts.js';
-import { IcomPcr1000 } from './drivers/icom-pcr1000.js';
 import { Unknown } from './drivers/unknown.js';
 
-import { icomPcr1000, models, unknown, unidenSts } from './models.js';
+import { models, unknown, unidenSts } from './models.js';
 
 export class Driver {
     constructor(ctx) {
@@ -33,17 +32,11 @@ export class Driver {
             if (model.driver === unidenSts) {
                 return new UnidenSts(ctx);
             }
-
-            if (model.driver === icomPcr1000) {
-                return new IcomPcr1000(ctx);
-            }
-
         } else {
             if (ctx.config.model === unknown) {
                 console.error('\n!!! WARNING: Unknown scanner model defined in config.json !!!\n');
-
             } else {
-                console.error(`\n!!! WARNING: Unknown scanner model: ${ctx.config.model} !!!\n`);
+                console.error(`\n!!! WARNING: Unknown scanner model: ${ctx.config.model} !!!\n');
             }
 
             return new Unknown(ctx);

@@ -20,11 +20,9 @@
 'use strict';
 
 export const unidenSts = 'uniden-sts';
-export const icomPcr1000 = 'icom-pcr1000';
 export const unknown = 'unknown';
 
 export const models = [
     { driver: unidenSts, name: 'bcd386t' },
     { driver: unidenSts, name: 'bcd436hp' },
-    { driver: icomPcr1000, name: 'pcr1000' },
 ];

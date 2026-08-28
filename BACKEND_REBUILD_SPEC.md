@@ -1,4 +1,4 @@
-# RC Scanner Backend Rebuild Specification
+# RC Teleporter Backend Rebuild Specification
 
 ## Purpose
 
@@ -21,7 +21,7 @@ Serve the existing built client assets unchanged. Preserve its HTTP routes, WebS
    - Open a USB/serial radio connection with configurable baud, data bits, parity, stop bits, flow control, terminator, auto-port discovery, retries, and health status.
    - Poll and/or subscribe to the Uniden BCD436HP serial status feed; publish raw/current display state to both interfaces.
    - Accept only the defined front-panel command set on port 3000. Port 3001 may optionally send one harmless `VFO push` on a display tap to enable/confirm audio, but no configuration-changing command.
-   - Keep the adapter modelled as an interface so Icom PCR1000 control can be added as another implementation without changing transport, security, or client code.
+   - Keep the adapter modelled as an interface so another radio (Icom PCR1000 lives on the pcr1000 branch) can be added without changing transport, security, or client code.
 
 2. **Display/control fan-out**
    - Broadcast display/status changes promptly over WebSocket.
