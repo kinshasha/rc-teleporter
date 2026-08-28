@@ -86,6 +86,9 @@ Connected to /dev/ttyUSB0
 
 Note that the first time you start *RC Teleporter*, it will be longer to do so as it has to install required node modules and build the progressive web app.
 
+Root-level `npm start` records launcher and server exits in `server/npm-start.log`
+for troubleshooting. The file is local-only and ignored by Git.
+
 A default configuration file `server/.env` will be created.
 
 At this point, you should review the configuration file to ensure that it is conform to your setup.

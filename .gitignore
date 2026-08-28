@@ -2,3 +2,4 @@
 .vscode
 /dist
 /client/.angular
+/server/npm-start.log
