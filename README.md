@@ -7,7 +7,7 @@ Issues: https://github.com/kinshasha/rc-teleporter/issues
 
 ## What changed from original rc-scanner
 
-This tree started as [chuot/rc-scanner](https://github.com/chuot/rc-scanner). Upstream is archived. `main` is the Mac BCD436HP gateway that is actually in use. The Icom PCR1000 prototype lives on the `pcr1000` branch, not here.
+This tree started as [chuot/rc-scanner](https://github.com/chuot/rc-scanner). Chuot archived that repository on July 31, 2026. RC Teleporter respects it as the upstream lineage, but this fork is a fresh continuation that recreates many concepts from scratch rather than tracking an active upstream. `main` is the Mac BCD436HP gateway that is actually in use. The Icom PCR1000 prototype lives on the `pcr1000` branch, not here.
 
 Working differences versus the original project:
 
