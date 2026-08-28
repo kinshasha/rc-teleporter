@@ -5,7 +5,7 @@ before it reaches WebRTC. Both the full-control listener (`3000`) and the
 view/listen-only listener (`3001`) receive the same mixed result.
 
 The remote stream URL stays on the server. Browsers receive only the configured
-label, shown as `Additional audio: <label>` while the feature is enabled.
+label, or the live Icecast `StreamTitle` when title metadata is enabled.
 
 ## Configuration
 
@@ -17,6 +17,7 @@ Add this inside `rcScanner.audio` in `server/config.json`:
     "enabled": true,
     "url": "https://audio.example.net/live.mp3",
     "label": "Fireground relay",
+    "useStreamTitle": false,
     "volume": 0.35
   }
 }
@@ -26,6 +27,8 @@ Add this inside `rcScanner.audio` in `server/config.json`:
 - `url`: HTTP(S) MPEG/MP3 stream URL decoded by FFmpeg.
 - `label`: public text shown on both browser interfaces. Do not place the URL
   or credentials in this label.
+- `useStreamTitle`: when `true`, use the live Icecast `StreamTitle` metadata
+  when available; `label` remains the fallback until a title is received.
 - `volume`: injected stream gain from `0` (silent) to `1` (equal to scanner
   input); `0.35` is the default.
 

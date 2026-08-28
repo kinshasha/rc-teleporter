@@ -20,7 +20,9 @@
 'use strict';
 
 import EventEmitter from 'events';
+import http from 'http';
 import { spawn } from 'child_process';
+import https from 'https';
 import portAudio from 'naudiodon2';
 
 export class Audio extends EventEmitter {
@@ -33,6 +35,8 @@ export class Audio extends EventEmitter {
         this.injectRetryTimer = null;
         this.injectedMixer = null;
         this.injectedMixerActive = false;
+        this.injectedMetadataRequest = null;
+        this.injectedStreamTitle = '';
         this.stopping = false;
 
         this.start();
@@ -185,6 +189,14 @@ export class Audio extends EventEmitter {
         this.emit('data', toArrayBuffer(data));
     }
 
+    getInjectedStreamLabel() {
+        const injectedStream = this.config.injectedStream;
+
+        return injectedStream?.useStreamTitle && this.injectedStreamTitle
+            ? this.injectedStreamTitle
+            : injectedStream?.label;
+    }
+
     startInjectedMixer() {
         const injectedStream = this.config.injectedStream;
 
@@ -194,6 +206,7 @@ export class Audio extends EventEmitter {
 
         const sampleRate = String(this.config.sampleRate);
         const streamUrl = formatInjectedStreamUrl(injectedStream.url);
+        this.startInjectedMetadataMonitor(injectedStream.url);
         const mixer = spawn('ffmpeg', [
             '-hide_banner', '-loglevel', 'error',
             '-f', 's16le', '-ar', sampleRate, '-ac', '1', '-i', 'pipe:0',
@@ -206,7 +219,7 @@ export class Audio extends EventEmitter {
         mixer.stdout.on('data', (data) => {
             if (!this.injectedMixerActive) {
                 this.injectedMixerActive = true;
-                this.emit('status', `Injected audio active: ${injectedStream.label} (${streamUrl})`);
+                this.emit('status', `Injected audio active: ${this.getInjectedStreamLabel()} (${streamUrl})`);
             }
 
             this.emit('data', toArrayBuffer(data));
@@ -215,7 +228,108 @@ export class Audio extends EventEmitter {
         mixer.on('close', (code) => this.handleInjectedMixerStop(`exit ${code ?? 'unknown'}`));
 
         this.injectedMixer = mixer;
-        this.emit('status', `Injected audio connecting: ${injectedStream.label} (${streamUrl})`);
+        this.emit('status', `Injected audio connecting: ${this.getInjectedStreamLabel()} (${streamUrl})`);
+    }
+
+    startInjectedMetadataMonitor(streamUrl) {
+        if (!this.config.injectedStream?.useStreamTitle || this.injectedMetadataRequest) {
+            return;
+        }
+
+        let parsedUrl;
+
+        try {
+            parsedUrl = new URL(streamUrl);
+        } catch (error) {
+            return;
+        }
+
+        const client = parsedUrl.protocol === 'https:' ? https : http;
+        const request = client.get(parsedUrl, {
+            headers: {
+                'Icy-MetaData': '1',
+                'User-Agent': 'RC Teleporter',
+            },
+        });
+
+        request.on('response', (response) => {
+            const metadataInterval = Number.parseInt(response.headers['icy-metaint'], 10);
+
+            if (!Number.isInteger(metadataInterval) || metadataInterval <= 0) {
+                response.resume();
+                return;
+            }
+
+            let audioBytesRemaining = metadataInterval;
+            let metadataBytesRemaining = 0;
+            let metadataLengthPending = false;
+            let metadata = Buffer.alloc(0);
+
+            response.on('data', (chunk) => {
+                let offset = 0;
+
+                while (offset < chunk.length) {
+                    if (audioBytesRemaining > 0) {
+                        const consumed = Math.min(audioBytesRemaining, chunk.length - offset);
+                        audioBytesRemaining -= consumed;
+                        offset += consumed;
+
+                        if (audioBytesRemaining > 0) {
+                            continue;
+                        }
+
+                        metadataLengthPending = true;
+                    }
+
+                    if (metadataLengthPending) {
+                        metadataBytesRemaining = chunk[offset] * 16;
+                        metadataLengthPending = false;
+                        offset += 1;
+
+                        if (metadataBytesRemaining === 0) {
+                            audioBytesRemaining = metadataInterval;
+                        }
+
+                        continue;
+                    }
+
+                    const consumed = Math.min(metadataBytesRemaining, chunk.length - offset);
+                    if (consumed > 0) {
+                        metadata = Buffer.concat([metadata, chunk.subarray(offset, offset + consumed)]);
+                        metadataBytesRemaining -= consumed;
+                        offset += consumed;
+                    }
+
+                    if (metadataBytesRemaining === 0) {
+                        this.updateInjectedStreamTitle(metadata.toString('utf8'));
+                        metadata = Buffer.alloc(0);
+                        audioBytesRemaining = metadataInterval;
+                    }
+                }
+            });
+        });
+
+        request.on('error', () => undefined);
+        this.injectedMetadataRequest = request;
+    }
+
+    stopInjectedMetadataMonitor() {
+        if (this.injectedMetadataRequest) {
+            this.injectedMetadataRequest.destroy();
+            this.injectedMetadataRequest = null;
+        }
+    }
+
+    updateInjectedStreamTitle(metadata) {
+        const match = metadata.match(/StreamTitle=['\"]([^'\"]*)['\"]/i);
+        const title = match?.[1]?.trim();
+
+        if (!title || title === this.injectedStreamTitle) {
+            return;
+        }
+
+        this.injectedStreamTitle = title;
+        this.emit('status', `Injected stream title: ${title}`);
     }
 
     stopInjectedMixer() {
@@ -232,6 +346,7 @@ export class Audio extends EventEmitter {
         }
 
         this.injectedMixerActive = false;
+        this.stopInjectedMetadataMonitor();
     }
 
     handleInjectedMixerStop(reason) {

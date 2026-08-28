@@ -113,6 +113,10 @@ export class AppRcScannerComponent implements OnDestroy {
             this.injectedAudioEnabled = mode !== 'off';
         }));
 
+        this.subscription.add(this.rcScannerService.injectedAudioLabel.subscribe((label: string) => {
+            this.injectedAudioLabel = label;
+        }));
+
         this.subscription.add(this.rcScannerService.viewerStreams.subscribe((count: number) => {
             this.viewerStreamCount = count;
         }));

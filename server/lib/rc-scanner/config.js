@@ -55,6 +55,7 @@ export class Config {
                 label: typeof injectedStream?.label === 'string' && injectedStream.label.trim().length > 0
                     ? injectedStream.label.trim()
                     : 'Additional audio',
+                useStreamTitle: injectedStream?.useStreamTitle === true,
                 url: typeof injectedStream?.url === 'string' ? injectedStream.url.trim() : '',
                 volume: typeof injectedStream?.volume === 'number' && injectedStream.volume >= 0 && injectedStream.volume <= 1
                     ? injectedStream.volume
@@ -124,7 +125,8 @@ export class Config {
                 injectedAudioActive: Boolean(app.rcScanner?.audio?.injectedMixerActive),
                 injectedAudioEnabled: this.audio.injectedStream.enabled,
                 injectedAudioMode: this.audio.injectedStream.mode,
-                injectedAudioLabel: this.audio.injectedStream.url ? this.audio.injectedStream.label : undefined,
+                injectedAudioLabel: this.audio.injectedStream.url ? app.rcScanner.audio.getInjectedStreamLabel() : undefined,
+                injectedAudioUseStreamTitle: this.audio.injectedStream.useStreamTitle,
             });
         });
 
@@ -133,6 +135,7 @@ export class Config {
             return res.send({
                 active: Boolean(app.rcScanner?.audio?.injectedMixerActive),
                 enabled: this.audio.injectedStream.enabled,
+                label: app.rcScanner?.audio?.getInjectedStreamLabel?.() || this.audio.injectedStream.label,
                 mode: this.audio.injectedStream.mode,
             });
         });
@@ -325,7 +328,8 @@ export class Config {
                     injectedAudioActive: Boolean(app.rcScanner?.audio?.injectedMixerActive),
                     injectedAudioEnabled: this.audio.injectedStream.enabled,
                     injectedAudioMode: this.audio.injectedStream.mode,
-                    injectedAudioLabel: this.audio.injectedStream.url ? this.audio.injectedStream.label : undefined,
+                    injectedAudioLabel: this.audio.injectedStream.url ? app.rcScanner.audio.getInjectedStreamLabel() : undefined,
+                    injectedAudioUseStreamTitle: this.audio.injectedStream.useStreamTitle,
                 });
             });
 
@@ -334,6 +338,7 @@ export class Config {
                 return res.send({
                     active: Boolean(app.rcScanner?.audio?.injectedMixerActive),
                     enabled: this.audio.injectedStream.enabled,
+                    label: app.rcScanner?.audio?.getInjectedStreamLabel?.() || this.audio.injectedStream.label,
                     mode: this.audio.injectedStream.mode,
                 });
             });

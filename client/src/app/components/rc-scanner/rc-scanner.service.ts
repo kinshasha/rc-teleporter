@@ -35,6 +35,7 @@ export interface AppRcScannerConfig {
     injectedAudioEnabled?: boolean;
     injectedAudioMode?: AppInjectedAudioMode;
     injectedAudioLabel?: string;
+    injectedAudioUseStreamTitle?: boolean;
     model: string;
     reconnectInterval: number;
     sampleRate: number;
@@ -90,6 +91,8 @@ export class AppRcScannerService implements OnDestroy {
     readonly injectedAudioEnabled = new EventEmitter<boolean>();
 
     readonly injectedAudioMode = new EventEmitter<AppInjectedAudioMode>();
+
+    readonly injectedAudioLabel = new EventEmitter<string>();
 
     readonly message = new EventEmitter<AppRcScannerMessage>();
 
@@ -253,6 +256,7 @@ export class AppRcScannerService implements OnDestroy {
         this.injectedAudioActive.complete();
         this.injectedAudioEnabled.complete();
         this.injectedAudioMode.complete();
+        this.injectedAudioLabel.complete();
         this.message.complete();
         this.viewerStreams.complete();
 
@@ -427,6 +431,7 @@ export class AppRcScannerService implements OnDestroy {
             this.injectedAudioActive.emit(config.injectedAudioActive === true);
             this.injectedAudioEnabled.emit(config.injectedAudioEnabled === true);
             this.injectedAudioMode.emit(this.getInjectedAudioMode(config));
+            this.injectedAudioLabel.emit(config.injectedAudioLabel || '');
 
             if (config.injectedAudioLabel) {
                 this.startInjectedAudioStatus();
@@ -848,11 +853,12 @@ export class AppRcScannerService implements OnDestroy {
         }
 
         const poll = () => {
-            this.httpClient.get<{ active: boolean; enabled: boolean; mode: AppInjectedAudioMode }>(this.getUrl('audio/injected-status')).subscribe({
+            this.httpClient.get<{ active: boolean; enabled: boolean; label?: string; mode: AppInjectedAudioMode }>(this.getUrl('audio/injected-status')).subscribe({
                 next: (status) => {
                     this.injectedAudioActive.emit(status.active === true);
                     this.injectedAudioEnabled.emit(status.enabled === true);
                     this.injectedAudioMode.emit(status.mode);
+                    this.injectedAudioLabel.emit(status.label || '');
                 },
                 error: () => {
                     this.injectedAudioActive.emit(false);

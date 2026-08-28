@@ -111,6 +111,11 @@ export class AppRcScannerBcd436hpComponent implements OnDestroy, OnInit {
             this.injectedAudioEnabled = mode !== 'off';
             this.ngChangeDetectorReg.markForCheck();
         }));
+
+        this.subscription.add(this.rcScannerService.injectedAudioLabel.subscribe((label) => {
+            this.injectedAudioLabel = label;
+            this.ngChangeDetectorReg.markForCheck();
+        }));
     }
 
     toggleInjectedAudio(): void {
