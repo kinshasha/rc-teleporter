@@ -253,6 +253,13 @@ export class Audio extends EventEmitter {
         });
 
         request.on('response', (response) => {
+            if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
+                response.resume();
+                this.injectedMetadataRequest = null;
+                this.startInjectedMetadataMonitor(new URL(response.headers.location, parsedUrl).toString());
+                return;
+            }
+
             const metadataInterval = Number.parseInt(response.headers['icy-metaint'], 10);
 
             if (!Number.isInteger(metadataInterval) || metadataInterval <= 0) {
