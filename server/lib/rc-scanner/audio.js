@@ -267,6 +267,11 @@ export class Audio extends EventEmitter {
                 return;
             }
 
+            const streamName = String(response.headers['icy-name'] || '').trim();
+            if (streamName) {
+                this.updateInjectedStreamTitle(streamName, true);
+            }
+
             let audioBytesRemaining = metadataInterval;
             let metadataBytesRemaining = 0;
             let metadataLengthPending = false;
@@ -327,9 +332,9 @@ export class Audio extends EventEmitter {
         }
     }
 
-    updateInjectedStreamTitle(metadata) {
+    updateInjectedStreamTitle(metadata, directTitle = false) {
         const match = metadata.match(/StreamTitle=['\"]([^'\"]*)['\"]/i);
-        const title = match?.[1]?.trim();
+        const title = (directTitle ? metadata : match?.[1])?.trim();
 
         if (!title || title === this.injectedStreamTitle) {
             return;
