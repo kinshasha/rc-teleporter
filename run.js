@@ -7,7 +7,7 @@ import url from 'url';
 const dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const clientPath = path.resolve(dirname, 'client');
 const serverPath = path.resolve(dirname, 'server');
-const clientIndex = path.resolve(clientPath, 'dist/rc-scanner/index.html');
+const clientIndex = path.resolve(clientPath, 'dist/rc-teleporter/index.html');
 try {
     const stdio = process.env.DEBUG === 'true' ? 'inherit' : 'pipe';
     if (!existsSync(path.resolve(clientPath, 'node_modules')) || !existsSync(path.resolve(serverPath, 'node_modules'))) {
