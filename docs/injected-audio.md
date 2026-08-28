@@ -37,5 +37,9 @@ Restart the gateway after changing this configuration. The server logs
 remote stream is connecting or reconnecting, scanner audio continues normally;
 the mixer retries using the existing audio reconnect interval.
 
+When stream-title mode is enabled, the metadata connection remains open for up
+to one minute to allow delayed `StreamTitle` blocks to arrive. It closes sooner
+when a title is captured, and the audio connection is not affected.
+
 This is an audio mix, not a second selectable browser stream. It is therefore
 included in WebRTC, MP3 fallback, WAV, and raw PCM output consistently.

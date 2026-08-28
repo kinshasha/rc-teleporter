@@ -311,7 +311,7 @@ export class Audio extends EventEmitter {
         this.injectedMetadataRequest = request;
         this.injectedMetadataTimer = setTimeout(() => {
             this.stopInjectedMetadataMonitor();
-        }, 30000);
+        }, 60000);
     }
 
     stopInjectedMetadataMonitor() {
