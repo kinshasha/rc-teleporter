@@ -285,12 +285,16 @@ async function logTurnStartupStatus() {
     const result = await validateTurnCredentials();
 
     if (!result.configured) {
-        console.warn('[TURN] credentials not configured; direct WebRTC only');
+        console.warn(colorizeStartupStatus('[TURN] credentials not configured; direct WebRTC only', '\x1b[33m'));
     } else if (result.accepted) {
-        console.log(`[TURN] credentials accepted (${result.serverCount} ICE server entries)`);
+        console.log(colorizeStartupStatus(`[TURN] credentials accepted (${result.serverCount} ICE server entries)`, '\x1b[32m'));
     } else {
-        console.error(`[TURN] credentials rejected: ${result.error}`);
+        console.error(colorizeStartupStatus(`[TURN] credentials rejected: ${result.error}`, '\x1b[31m'));
     }
+}
+
+function colorizeStartupStatus(message, color) {
+    return `${color}${message}\x1b[0m`;
 }
 
 function eventTimestamp() {
