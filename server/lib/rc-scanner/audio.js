@@ -36,6 +36,7 @@ export class Audio extends EventEmitter {
         this.injectedMixer = null;
         this.injectedMixerActive = false;
         this.injectedMetadataRequest = null;
+        this.injectedMetadataTimer = null;
         this.injectedStreamTitle = '';
         this.stopping = false;
 
@@ -255,9 +256,18 @@ export class Audio extends EventEmitter {
         request.on('response', (response) => {
             if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
                 response.resume();
+                if (this.injectedMetadataTimer) {
+                    clearTimeout(this.injectedMetadataTimer);
+                    this.injectedMetadataTimer = null;
+                }
                 this.injectedMetadataRequest = null;
                 this.startInjectedMetadataMonitor(new URL(response.headers.location, parsedUrl).toString());
                 return;
+            }
+
+            const streamName = String(response.headers['icy-name'] || '').trim();
+            if (streamName && !this.injectedStreamTitle) {
+                this.updateInjectedStreamTitle(streamName, true);
             }
 
             const metadataInterval = Number.parseInt(response.headers['icy-metaint'], 10);
@@ -267,61 +277,31 @@ export class Audio extends EventEmitter {
                 return;
             }
 
-            const streamName = String(response.headers['icy-name'] || '').trim();
-            if (streamName) {
-                if (this.updateInjectedStreamTitle(streamName, true)) {
-                    this.stopInjectedMetadataMonitor();
-                    return;
-                }
-            }
-
-            let audioBytesRemaining = metadataInterval;
-            let metadataBytesRemaining = 0;
-            let metadataLengthPending = false;
-            let metadata = Buffer.alloc(0);
+            let pending = Buffer.alloc(0);
+            let metadataOffset = 0;
 
             response.on('data', (chunk) => {
-                let offset = 0;
+                pending = Buffer.concat([pending, chunk]);
 
-                while (offset < chunk.length) {
-                    if (audioBytesRemaining > 0) {
-                        const consumed = Math.min(audioBytesRemaining, chunk.length - offset);
-                        audioBytesRemaining -= consumed;
-                        offset += consumed;
+                while (pending.length >= metadataOffset + metadataInterval + 1) {
+                    const metadataLength = pending[metadataOffset + metadataInterval] * 16;
+                    const metadataEnd = metadataOffset + metadataInterval + 1 + metadataLength;
 
-                        if (audioBytesRemaining > 0) {
-                            continue;
-                        }
-
-                        metadataLengthPending = true;
+                    if (pending.length < metadataEnd) {
+                        break;
                     }
 
-                    if (metadataLengthPending) {
-                        metadataBytesRemaining = chunk[offset] * 16;
-                        metadataLengthPending = false;
-                        offset += 1;
+                    const metadata = pending.subarray(metadataOffset + metadataInterval + 1, metadataEnd).toString('utf8');
+                    metadataOffset = metadataEnd;
 
-                        if (metadataBytesRemaining === 0) {
-                            audioBytesRemaining = metadataInterval;
-                        }
-
-                        continue;
+                    if (this.updateInjectedStreamTitle(metadata)) {
+                        this.stopInjectedMetadataMonitor();
+                        return;
                     }
 
-                    const consumed = Math.min(metadataBytesRemaining, chunk.length - offset);
-                    if (consumed > 0) {
-                        metadata = Buffer.concat([metadata, chunk.subarray(offset, offset + consumed)]);
-                        metadataBytesRemaining -= consumed;
-                        offset += consumed;
-                    }
-
-                    if (metadataBytesRemaining === 0) {
-                        if (this.updateInjectedStreamTitle(metadata.toString('utf8'))) {
-                            this.stopInjectedMetadataMonitor();
-                            return;
-                        }
-                        metadata = Buffer.alloc(0);
-                        audioBytesRemaining = metadataInterval;
+                    if (metadataOffset > metadataInterval * 2) {
+                        pending = pending.subarray(metadataOffset);
+                        metadataOffset = 0;
                     }
                 }
             });
@@ -329,9 +309,17 @@ export class Audio extends EventEmitter {
 
         request.on('error', () => undefined);
         this.injectedMetadataRequest = request;
+        this.injectedMetadataTimer = setTimeout(() => {
+            this.stopInjectedMetadataMonitor();
+        }, 30000);
     }
 
     stopInjectedMetadataMonitor() {
+        if (this.injectedMetadataTimer) {
+            clearTimeout(this.injectedMetadataTimer);
+            this.injectedMetadataTimer = null;
+        }
+
         if (this.injectedMetadataRequest) {
             this.injectedMetadataRequest.destroy();
             this.injectedMetadataRequest = null;
