@@ -414,7 +414,7 @@ export class Config {
         this.audio.injectedStream.label = selectedStream.label || 'Additional audio';
 
         if (app.rcScanner?.audio) {
-            app.rcScanner.audio.injectedStreamTitle = '';
+            app.rcScanner.audio.resetInjectedStreamTitle();
 
             if (this.audio.injectedStream.mode !== 'off') {
                 app.rcScanner.audio.stopInjectedMixer();

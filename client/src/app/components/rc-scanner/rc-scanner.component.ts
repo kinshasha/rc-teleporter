@@ -175,9 +175,14 @@ export class AppRcScannerComponent implements OnDestroy {
     }
 
     changeInjectedAudioStream(delta: number): void {
-        const nextNumber = this.injectedAudioStreamNumber + delta;
+        if (!this.injectedAudioUseStreamList || this.injectedAudioStreamCount < 2) {
+            return;
+        }
 
-        if (!this.injectedAudioUseStreamList || nextNumber < 1 || nextNumber > this.injectedAudioStreamCount) {
+        const nextNumber = ((this.injectedAudioStreamNumber - 1 + delta) % this.injectedAudioStreamCount
+            + this.injectedAudioStreamCount) % this.injectedAudioStreamCount + 1;
+
+        if (nextNumber < 1 || nextNumber > this.injectedAudioStreamCount) {
             return;
         }
 

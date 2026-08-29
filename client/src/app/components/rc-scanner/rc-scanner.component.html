@@ -14,10 +14,10 @@
     </ng-container>
     <div *ngIf="!isReadOnly && injectedAudioUseStreamList && injectedAudioStreamCount > 1" class="injected-audio-selector">
         <button type="button" aria-label="Previous additional audio stream"
-            [disabled]="injectedAudioStreamNumber <= 1" (click)="changeInjectedAudioStream(-1)">←</button>
+            (click)="changeInjectedAudioStream(-1)">←</button>
         <span>Stream {{ injectedAudioStreamNumber }}/{{ injectedAudioStreamCount }}</span>
         <button type="button" aria-label="Next additional audio stream"
-            [disabled]="injectedAudioStreamNumber >= injectedAudioStreamCount" (click)="changeInjectedAudioStream(1)">→</button>
+            (click)="changeInjectedAudioStream(1)">→</button>
     </div>
 </div>
 

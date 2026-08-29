@@ -198,6 +198,10 @@ export class Audio extends EventEmitter {
             : injectedStream?.label;
     }
 
+    resetInjectedStreamTitle() {
+        this.injectedStreamTitle = '';
+    }
+
     startInjectedMixer() {
         const injectedStream = this.config.injectedStream;
 
