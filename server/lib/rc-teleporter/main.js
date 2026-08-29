@@ -20,6 +20,7 @@
 'use strict';
 
 import EventEmitter from 'events';
+import path from 'path';
 import naudiodon from 'naudiodon2';
 import { SerialPort } from 'serialport';
 
@@ -60,6 +61,10 @@ export class RcScanner extends EventEmitter {
 
             return;
         }
+
+        this.streamUpdatesLogFile = app.configFile
+            ? path.resolve(path.dirname(app.configFile), 'streamupdates.log')
+            : path.resolve(process.cwd(), 'streamupdates.log');
 
         this.audio = new Audio(this);
         this.audio.on('status', console.log);

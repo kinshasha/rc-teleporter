@@ -20,6 +20,7 @@
 'use strict';
 
 import EventEmitter from 'events';
+import fs from 'fs';
 import http from 'http';
 import { spawn } from 'child_process';
 import https from 'https';
@@ -38,6 +39,7 @@ export class Audio extends EventEmitter {
         this.injectedMetadataRequest = null;
         this.injectedMetadataRetryTimer = null;
         this.injectedStreamTitle = '';
+        this.streamUpdatesLogFile = ctx.streamUpdatesLogFile;
         this.stopping = false;
 
         this.start();
@@ -354,6 +356,9 @@ export class Audio extends EventEmitter {
         }
 
         this.injectedStreamTitle = title;
+        if (this.streamUpdatesLogFile) {
+            fs.appendFile(this.streamUpdatesLogFile, `${new Date().toISOString()} ${title}\n`, () => undefined);
+        }
         this.emit('status', `Injected stream title: ${title}`);
         return true;
     }
