@@ -372,13 +372,19 @@ function registerStreamUpdatesRoutes(router, configFile, clients) {
 
     router.get('/streamupdates/events', (req, res) => {
         res.status(200);
-        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Cache-Control', 'no-cache, no-transform');
+        res.setHeader('Content-Encoding', 'identity');
         res.setHeader('Content-Type', 'text/event-stream');
         res.setHeader('Connection', 'keep-alive');
         res.flushHeaders?.();
+        res.write(': connected\n\n');
+        res.flush?.();
         clients.add(res);
 
-        const keepAlive = setInterval(() => res.write(': keep-alive\n\n'), 25000);
+        const keepAlive = setInterval(() => {
+            res.write(': keep-alive\n\n');
+            res.flush?.();
+        }, 25000);
 
         req.on('close', () => {
             clearInterval(keepAlive);
