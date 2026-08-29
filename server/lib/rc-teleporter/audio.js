@@ -356,7 +356,7 @@ export class Audio extends EventEmitter {
         }
 
         this.injectedStreamTitle = title;
-        if (this.streamUpdatesLogFile) {
+        if (this.streamUpdatesLogFile && title.toLowerCase() !== 'scanning') {
             fs.appendFile(this.streamUpdatesLogFile, `${new Date().toISOString()} ${title}\n`, () => undefined);
         }
         this.emit('status', `Injected stream title: ${title}`);
