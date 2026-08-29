@@ -11,6 +11,7 @@
         "list-audio": "node server list-audio",
         "list-models": "node server list-models",
         "start": "node run.js",
+        "validate-streams": "node scripts/validate-streams.mjs",
         "update": "node update.js"
     },
     "type": "module",
