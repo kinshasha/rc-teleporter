@@ -273,8 +273,16 @@ export class App extends EventEmitter {
 
     saveConfig() {
         const persistedConfig = JSON.parse(JSON.stringify(this.config));
+        const persistedScanner = persistedConfig.rcScanner;
         const persistedStream = persistedConfig.rcScanner?.audio?.injectedStream;
         const scannerConfig = this.rcScanner?.config;
+
+        if (persistedScanner) {
+            delete persistedScanner.streamList;
+            delete persistedScanner.viewerSessions;
+            delete persistedScanner.activeFallbackStreams;
+            delete persistedScanner.activeWebRtcStreams;
+        }
 
         if (persistedStream) {
             delete persistedStream.streamNumber;
