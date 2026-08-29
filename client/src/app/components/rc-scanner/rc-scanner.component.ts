@@ -57,6 +57,12 @@ export class AppRcScannerComponent implements OnDestroy {
 
     injectedAudioMode: 'off' | 'mix' | 'additionalOnly' = 'off';
 
+    injectedAudioStreamCount = 0;
+
+    injectedAudioStreamNumber = 1;
+
+    injectedAudioUseStreamList = false;
+
     model: string = 'unknown';
 
     screenWakeLockActive = false;
@@ -117,6 +123,12 @@ export class AppRcScannerComponent implements OnDestroy {
             this.injectedAudioLabel = label;
         }));
 
+        this.subscription.add(this.rcScannerService.injectedAudioStreamSelection.subscribe((selection) => {
+            this.injectedAudioStreamCount = selection.count;
+            this.injectedAudioStreamNumber = selection.number;
+            this.injectedAudioUseStreamList = selection.useList;
+        }));
+
         this.subscription.add(this.rcScannerService.viewerStreams.subscribe((count: number) => {
             this.viewerStreamCount = count;
         }));
@@ -160,6 +172,22 @@ export class AppRcScannerComponent implements OnDestroy {
                 this.audioStatus = 'Unable to load audio devices.';
             },
         }));
+    }
+
+    changeInjectedAudioStream(delta: number): void {
+        const nextNumber = this.injectedAudioStreamNumber + delta;
+
+        if (!this.injectedAudioUseStreamList || nextNumber < 1 || nextNumber > this.injectedAudioStreamCount) {
+            return;
+        }
+
+        this.rcScannerService.setInjectedAudioStreamNumber(nextNumber).subscribe({
+            next: (status) => {
+                this.injectedAudioLabel = status.label;
+                this.injectedAudioStreamNumber = status.streamNumber;
+            },
+            error: () => undefined,
+        });
     }
 
     selectAudioDevice(nextDeviceId: number): void {

@@ -8,7 +8,14 @@
 
 <div *ngIf="injectedAudioLabel && injectedAudioEnabled" class="injected-audio-notice" [class.is-active]="injectedAudioActive" role="status">
     <span class="injected-audio-notice__indicator" aria-hidden="true"></span>
-    {{ injectedAudioMode === 'additionalOnly' ? 'Only audio' : 'Additional audio' }}: {{ injectedAudioLabel }}
+    <div>{{ injectedAudioMode === 'additionalOnly' ? 'Only audio' : 'Additional audio' }}: {{ injectedAudioLabel }}</div>
+    <div *ngIf="!isReadOnly && injectedAudioUseStreamList && injectedAudioStreamCount > 1" class="injected-audio-selector">
+        <button type="button" aria-label="Previous additional audio stream"
+            [disabled]="injectedAudioStreamNumber <= 1" (click)="changeInjectedAudioStream(-1)">←</button>
+        <span>Stream {{ injectedAudioStreamNumber }}</span>
+        <button type="button" aria-label="Next additional audio stream"
+            [disabled]="injectedAudioStreamNumber >= injectedAudioStreamCount" (click)="changeInjectedAudioStream(1)">→</button>
+    </div>
 </div>
 
 <ng-container *ngIf="!isReadOnly">

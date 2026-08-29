@@ -31,9 +31,9 @@ export class Config {
     constructor(app) {
         const config = app.config.rcScanner;
         const injectedStream = config?.audio?.injectedStream;
-        const streamList = loadStreamList(app.configFile);
+        this.streamList = loadStreamList(app.configFile);
         const selectedStream = injectedStream?.useStreamList
-            ? streamList.find((stream) => stream.number === injectedStream.streamNumber)
+            ? this.streamList.find((stream) => stream.number === injectedStream.streamNumber)
             : undefined;
         const injectedStreamUrl = injectedStream?.useStreamList
             ? selectedStream?.url || ''
@@ -141,6 +141,9 @@ export class Config {
                 injectedAudioEnabled: this.audio.injectedStream.enabled,
                 injectedAudioMode: this.audio.injectedStream.mode,
                 injectedAudioLabel: this.audio.injectedStream.url ? app.rcScanner.audio.getInjectedStreamLabel() : undefined,
+                injectedAudioStreamCount: this.streamList.length,
+                injectedAudioStreamNumber: this.audio.injectedStream.streamNumber,
+                injectedAudioUseStreamList: this.audio.injectedStream.useStreamList,
                 injectedAudioUseStreamTitle: this.audio.injectedStream.useStreamTitle,
             });
         });
@@ -152,6 +155,30 @@ export class Config {
                 enabled: this.audio.injectedStream.enabled,
                 label: app.rcScanner?.audio?.getInjectedStreamLabel?.() || this.audio.injectedStream.label,
                 mode: this.audio.injectedStream.mode,
+                streamCount: this.streamList.length,
+                streamNumber: this.audio.injectedStream.streamNumber,
+                useStreamList: this.audio.injectedStream.useStreamList,
+            });
+        });
+
+        app.router.post('/audio/injected-stream-number', (req, res) => {
+            const streamNumber = Number.parseInt(req.body?.streamNumber, 10);
+            const selected = this.setInjectedStreamNumber(app, streamNumber);
+
+            if (!selected) {
+                return res.status(404).send({ error: 'Unknown stream number' });
+            }
+
+            logEvent(`[audio 3000] injected stream ${streamNumber} selected by ${getClientAddress(req)}`);
+
+            return res.send({
+                active: Boolean(app.rcScanner.audio.injectedMixerActive),
+                enabled: this.audio.injectedStream.enabled,
+                label: app.rcScanner.audio.getInjectedStreamLabel(),
+                mode: this.audio.injectedStream.mode,
+                streamCount: this.streamList.length,
+                streamNumber: this.audio.injectedStream.streamNumber,
+                useStreamList: this.audio.injectedStream.useStreamList,
             });
         });
 
@@ -344,6 +371,9 @@ export class Config {
                     injectedAudioEnabled: this.audio.injectedStream.enabled,
                     injectedAudioMode: this.audio.injectedStream.mode,
                     injectedAudioLabel: this.audio.injectedStream.url ? app.rcScanner.audio.getInjectedStreamLabel() : undefined,
+                    injectedAudioStreamCount: this.streamList.length,
+                    injectedAudioStreamNumber: this.audio.injectedStream.streamNumber,
+                    injectedAudioUseStreamList: this.audio.injectedStream.useStreamList,
                     injectedAudioUseStreamTitle: this.audio.injectedStream.useStreamTitle,
                 });
             });
@@ -355,11 +385,42 @@ export class Config {
                     enabled: this.audio.injectedStream.enabled,
                     label: app.rcScanner?.audio?.getInjectedStreamLabel?.() || this.audio.injectedStream.label,
                     mode: this.audio.injectedStream.mode,
+                    streamCount: this.streamList.length,
+                    streamNumber: this.audio.injectedStream.streamNumber,
+                    useStreamList: this.audio.injectedStream.useStreamList,
                 });
             });
 
             this.registerWebRtcRoutes(app.viewerRouter, app, true);
         }
+    }
+
+    setInjectedStreamNumber(app, streamNumber) {
+        if (!this.audio.injectedStream.useStreamList || !Number.isInteger(streamNumber)) {
+            return false;
+        }
+
+        const selectedStream = this.streamList.find((stream) => stream.number === streamNumber);
+
+        if (!selectedStream) {
+            return false;
+        }
+
+        this.audio.injectedStream.streamNumber = selectedStream.number;
+        this.audio.injectedStream.url = selectedStream.url;
+        this.audio.injectedStream.label = selectedStream.label || 'Additional audio';
+
+        if (app.rcScanner?.audio) {
+            app.rcScanner.audio.injectedStreamTitle = '';
+
+            if (this.audio.injectedStream.mode !== 'off') {
+                app.rcScanner.audio.stopInjectedMixer();
+                app.rcScanner.audio.startInjectedMixer();
+            }
+        }
+
+        app.saveConfig();
+        return true;
     }
 
     registerWebRtcRoutes(router, app, viewOnly) {
