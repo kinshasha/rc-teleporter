@@ -454,7 +454,9 @@ function streamUpdatesPage() {
     let page = 0;
     const titleOnly = (line) => {
         const match = line.match(/^(\\S+)\\s+(.*)$/);
-        return match ? match[2] : line;
+        if (!match) return line;
+        const date = new Date(match[1]);
+        return Number.isNaN(date.getTime()) ? match[2] : date.toLocaleTimeString() + ' ' + match[2];
     };
     const render = () => {
         updates.replaceChildren();
