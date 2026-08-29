@@ -13,5 +13,20 @@
     "number": 3,
     "url": "https://broadcastify.cdnstream1.com/35648",
     "label": "Surf Lifesaving NSW & QldOld"
+  },
+  {
+    "number": 4,
+    "url": "https://broadcastify.cdnstream1.com/24820",
+    "label": "Fire Rescue Victoria (Metro)"
+  },
+  {
+    "number": 5,
+    "url": "https://broadcastify.cdnstream1.com/46232",
+    "label": "YMML Tower Broadcastify"
+  },
+  {
+    "number": 6,
+    "url": "https://broadcastify.cdnstream1.com/43956",
+    "label": "Melbourne Orion"
   }
 ]
