@@ -20,6 +20,8 @@
 'use strict';
 
 import { spawn } from 'child_process';
+import fs from 'fs';
+import path from 'path';
 import naudiodon from 'naudiodon2';
 import wrtc from '@roamhq/wrtc';
 
@@ -29,6 +31,17 @@ export class Config {
     constructor(app) {
         const config = app.config.rcScanner;
         const injectedStream = config?.audio?.injectedStream;
+        const streamList = loadStreamList(app.configFile);
+        const selectedStream = injectedStream?.useStreamList
+            ? streamList.find((stream) => stream.number === injectedStream.streamNumber)
+            : undefined;
+        const injectedStreamUrl = injectedStream?.useStreamList
+            ? selectedStream?.url || ''
+            : injectedStream?.url || '';
+        const injectedStreamLabel = injectedStream?.useStreamList
+            ? selectedStream?.label || injectedStream?.label
+            : injectedStream?.label;
+        const injectedStreamEnabled = injectedStream?.enabled === true && injectedStreamUrl.length > 0;
 
         this.viewerSessions = new Map();
         this.activeFallbackStreams = 0;
@@ -48,15 +61,17 @@ export class Config {
                 ? config.audio.squelch
                 : parseInt(process.env.RC_AUDIO_SQUELCH, 10) || 100,
             injectedStream: {
-                enabled: injectedStream?.enabled === true && typeof injectedStream.url === 'string' && injectedStream.url.length > 0,
-                mode: injectedStream?.enabled === true && typeof injectedStream.url === 'string' && injectedStream.url.length > 0
+                enabled: injectedStreamEnabled,
+                mode: injectedStreamEnabled
                     ? 'mix'
                     : 'off',
-                label: typeof injectedStream?.label === 'string' && injectedStream.label.trim().length > 0
-                    ? injectedStream.label.trim()
+                label: typeof injectedStreamLabel === 'string' && injectedStreamLabel.trim().length > 0
+                    ? injectedStreamLabel.trim()
                     : 'Additional audio',
+                streamNumber: Number.isInteger(injectedStream?.streamNumber) ? injectedStream.streamNumber : 1,
+                useStreamList: injectedStream?.useStreamList === true,
                 useStreamTitle: injectedStream?.useStreamTitle === true,
-                url: typeof injectedStream?.url === 'string' ? injectedStream.url.trim() : '',
+                url: typeof injectedStreamUrl === 'string' ? injectedStreamUrl.trim() : '',
                 volume: typeof injectedStream?.volume === 'number' && injectedStream.volume >= 0 && injectedStream.volume <= 1
                     ? injectedStream.volume
                     : 0.35,
@@ -593,6 +608,33 @@ function getClientAddress(req) {
     const address = Array.isArray(forwarded) ? forwarded[0] : String(forwarded || '').split(',')[0].trim();
 
     return address || req.socket?.remoteAddress || 'unknown';
+}
+
+function loadStreamList(configFile) {
+    if (!configFile) {
+        return [];
+    }
+
+    const streamsFile = path.resolve(path.dirname(configFile), 'streams.json');
+
+    try {
+        const streams = JSON.parse(fs.readFileSync(streamsFile, 'utf8'));
+
+        if (!Array.isArray(streams)) {
+            return [];
+        }
+
+        return streams
+            .map((stream) => ({
+                label: typeof stream?.label === 'string' ? stream.label.trim() : '',
+                number: Number.isInteger(stream?.number) ? stream.number : 0,
+                url: typeof stream?.url === 'string' ? stream.url.trim() : '',
+            }))
+            .filter((stream) => stream.number > 0 && stream.url.length > 0);
+
+    } catch (error) {
+        return [];
+    }
 }
 
 function logEvent(message, warning = false) {
