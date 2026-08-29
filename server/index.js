@@ -370,6 +370,21 @@ function registerStreamUpdatesRoutes(router, configFile, clients) {
         return res.send(readStreamUpdates(logFile));
     });
 
+    router.post('/streamupdates/clear', (req, res) => {
+        try {
+            fs.writeFileSync(logFile, '');
+        } catch (error) {
+            return res.status(500).send({ error: 'Unable to clear stream updates' });
+        }
+
+        clients.forEach((client) => {
+            client.write('event: clear\ndata: {}\n\n');
+            client.flush?.();
+        });
+
+        return res.status(204).end();
+    });
+
     router.get('/streamupdates/events', (req, res) => {
         res.status(200);
         res.setHeader('Cache-Control', 'no-cache, no-transform');
@@ -442,6 +457,7 @@ function streamUpdatesPage() {
         </select>
         <button id="previous" type="button">Newer</button>
         <button id="next" type="button">Older</button>
+        <button id="clear" type="button">Clear</button>
         <span id="page-label"></span>
         <span id="active-stream">Stream --</span>
     </div>
@@ -453,6 +469,7 @@ function streamUpdatesPage() {
     const pageSizeControl = document.getElementById('page-size');
     const previous = document.getElementById('previous');
     const next = document.getElementById('next');
+    const clear = document.getElementById('clear');
     const pageLabel = document.getElementById('page-label');
     const activeStream = document.getElementById('active-stream');
     let lines = [];
@@ -498,10 +515,16 @@ function streamUpdatesPage() {
     });
     previous.addEventListener('click', () => { page = Math.max(0, page - 1); render(); });
     next.addEventListener('click', () => { page++; render(); });
+    clear.addEventListener('click', () => fetch('streamupdates/clear', { method: 'POST' })
+        .then((response) => {
+            if (!response.ok && response.status !== 204) throw new Error('clear failed');
+        })
+        .catch(() => { status.textContent = 'Unable to clear history'; }));
     const startEvents = () => {
         const events = new EventSource('streamupdates/events');
         events.onopen = () => { status.textContent = 'Live'; };
         events.onmessage = (event) => addUpdate(JSON.parse(event.data));
+        events.addEventListener('clear', () => { lines = []; page = 0; render(); });
         events.onerror = () => { status.textContent = 'Reconnecting...'; };
     };
     const refreshActiveStream = () => fetch('audio/injected-status', { cache: 'no-store' })
