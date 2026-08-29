@@ -140,6 +140,7 @@ export class App extends EventEmitter {
         this.configFile = configFile;
 
         this.router = express();
+        this.streamUpdateClients = new Set();
         this.router.disable('x-powered-by');
         this.router.use(compression());
         this.router.use(cors());
@@ -156,6 +157,7 @@ export class App extends EventEmitter {
 
             next();
         });
+        registerStreamUpdatesRoutes(this.router, configFile, this.streamUpdateClients);
         this.router.use(express.static(staticDir));
         this.router.use((req, res, next) => {
             if (['/', '/index.html'].includes(req.path)) {
@@ -188,6 +190,7 @@ export class App extends EventEmitter {
 
                 next();
             });
+            registerStreamUpdatesRoutes(this.viewerRouter, configFile, this.streamUpdateClients);
             this.viewerRouter.use(express.static(staticDir));
             this.viewerRouter.use((req, res, next) => {
                 if (['/', '/index.html'].includes(req.path)) {
@@ -244,6 +247,12 @@ export class App extends EventEmitter {
         this.once('ready', () => this.saveConfig());
 
         this.rcScanner = new RcScanner(this);
+
+        this.rcScanner.audio.on('title', (line) => {
+            const event = `data: ${JSON.stringify(line)}\n\n`;
+
+            this.streamUpdateClients.forEach((res) => res.write(event));
+        });
 
         this.rcScanner.on('config', () => this.saveConfig());
 
@@ -346,4 +355,100 @@ function colorizeStartupStatus(message, color) {
 
 function eventTimestamp() {
     return new Date().toISOString();
+}
+
+function registerStreamUpdatesRoutes(router, configFile, clients) {
+    const logFile = path.resolve(path.dirname(configFile), 'streamupdates.log');
+
+    router.get('/streamupdates.html', (req, res) => {
+        res.setHeader('Cache-Control', 'no-store');
+        return res.type('html').send(streamUpdatesPage());
+    });
+
+    router.get('/streamupdates/history', (req, res) => {
+        res.setHeader('Cache-Control', 'no-store');
+        return res.send(readStreamUpdates(logFile));
+    });
+
+    router.get('/streamupdates/events', (req, res) => {
+        res.status(200);
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Connection', 'keep-alive');
+        res.flushHeaders?.();
+        clients.add(res);
+
+        const keepAlive = setInterval(() => res.write(': keep-alive\n\n'), 25000);
+
+        req.on('close', () => {
+            clearInterval(keepAlive);
+            clients.delete(res);
+        });
+    });
+}
+
+function readStreamUpdates(logFile) {
+    try {
+        return fs.readFileSync(logFile, 'utf8')
+            .split(/\r?\n/)
+            .filter(Boolean)
+            .slice(-100);
+
+    } catch (error) {
+        return [];
+    }
+}
+
+function streamUpdatesPage() {
+    return `<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Stream updates</title>
+    <style>
+        :root { color-scheme: dark; font-family: system-ui, sans-serif; }
+        body { background: #1e1e1e; color: #f3f3f3; margin: 0; padding: 24px; }
+        main { margin: 0 auto; max-width: 900px; }
+        h1 { font-size: 22px; margin: 0 0 16px; }
+        #status { color: #a9e59d; font-size: 13px; margin-bottom: 12px; }
+        #updates { background: #111; border: 1px solid #444; border-radius: 8px; font: 14px/1.5 ui-monospace, monospace; min-height: 240px; overflow-wrap: anywhere; padding: 14px; white-space: pre-wrap; }
+        .line { border-bottom: 1px solid #292929; padding: 5px 0; }
+        .line:last-child { border-bottom: 0; }
+    </style>
+</head>
+<body>
+<main>
+    <h1>Stream updates</h1>
+    <div id="status">Connecting...</div>
+    <section id="updates" aria-live="polite"></section>
+</main>
+<script>
+    const updates = document.getElementById('updates');
+    const status = document.getElementById('status');
+    const localize = (line) => {
+        const match = line.match(/^(\\S+)\\s+(.*)$/);
+        if (!match) return line;
+        const date = new Date(match[1]);
+        return Number.isNaN(date.getTime()) ? line : date.toLocaleString() + ' ' + match[2];
+    };
+    const addLine = (line) => {
+        const item = document.createElement('div');
+        item.className = 'line';
+        item.textContent = localize(line);
+        updates.appendChild(item);
+        while (updates.children.length > 100) updates.firstElementChild.remove();
+        updates.scrollTop = updates.scrollHeight;
+    };
+    fetch('streamupdates/history', { cache: 'no-store' })
+        .then((response) => response.json())
+        .then((lines) => lines.forEach(addLine))
+        .catch(() => { status.textContent = 'Unable to load history'; });
+    const events = new EventSource('streamupdates/events');
+    events.onopen = () => { status.textContent = 'Live'; };
+    events.onmessage = (event) => addLine(JSON.parse(event.data));
+    events.onerror = () => { status.textContent = 'Reconnecting...'; };
+</script>
+</body>
+</html>`;
 }
