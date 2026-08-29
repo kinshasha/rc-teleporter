@@ -34,7 +34,8 @@ export class Config {
         this.streamList = loadStreamList(app.configFile);
         this.directInjectedStreamUrl = typeof injectedStream?.url === 'string' ? injectedStream.url.trim() : '';
         this.directInjectedStreamLabel = typeof injectedStream?.label === 'string' ? injectedStream.label.trim() : '';
-        this.selectedStreamNumber = Number.isInteger(injectedStream?.streamNumber) ? injectedStream.streamNumber : 1;
+        // Stream-list selection is runtime state and is never persisted.
+        this.selectedStreamNumber = 1;
         const selectedStream = injectedStream?.useStreamList
             ? this.streamList.find((stream) => stream.number === this.selectedStreamNumber)
             : undefined;

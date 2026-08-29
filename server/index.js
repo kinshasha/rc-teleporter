@@ -276,10 +276,13 @@ export class App extends EventEmitter {
         const persistedStream = persistedConfig.rcScanner?.audio?.injectedStream;
         const scannerConfig = this.rcScanner?.config;
 
-        if (persistedStream && scannerConfig) {
+        if (persistedStream) {
             delete persistedStream.streamNumber;
-            persistedStream.url = scannerConfig.directInjectedStreamUrl;
-            persistedStream.label = scannerConfig.directInjectedStreamLabel;
+
+            if (scannerConfig) {
+                persistedStream.url = scannerConfig.directInjectedStreamUrl;
+                persistedStream.label = scannerConfig.directInjectedStreamLabel;
+            }
         }
 
         const config = Object.keys(persistedConfig)
