@@ -28,5 +28,25 @@
     "number": 6,
     "url": "https://broadcastify.cdnstream1.com/43956",
     "label": "Melbourne Orion"
+  },
+  {
+    "number": 7,
+    "url": "http://d.liveatc.net/yssy1_ctr_128600",
+    "label": "YBBN Center"
+  },
+  {
+    "number": 8,
+    "url": "http://d.liveatc.net/ybok",
+    "label": "Oakey"
+  },
+  {
+    "number": 9,
+    "url": "http://d.liveatc.net/yred2_ctr",
+    "label": "YRED BNE Center"
+  },
+  {
+    "number": 10,
+    "url": "http://d.liveatc.net/ybaf4_gnd",
+    "label": "Archerfield Ground"
   }
 ]
