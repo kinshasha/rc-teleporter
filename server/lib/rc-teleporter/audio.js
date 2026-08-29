@@ -362,7 +362,9 @@ export class Audio extends EventEmitter {
         }
 
         this.injectedStreamTitle = title;
-        if (this.streamUpdatesLogFile && !title.toLowerCase().startsWith('scanning')) {
+        if (title.toLowerCase().startsWith('scanning')) {
+            this.completePendingStreamTitle();
+        } else if (this.streamUpdatesLogFile) {
             this.recordStreamTitle(title);
         }
         this.emit('status', `Injected stream title: ${title}`);
@@ -371,19 +373,7 @@ export class Audio extends EventEmitter {
 
     recordStreamTitle(title) {
         const startedAt = Date.now();
-
-        if (this.pendingStreamUpdate) {
-            const duration = Math.max(0, Math.round((startedAt - this.pendingStreamUpdate.startedAt) / 1000));
-            const [timestamp, ...titleParts] = this.pendingStreamUpdate.line.split(' ');
-            const line = `${timestamp} (${duration}s) ${titleParts.join(' ')}`;
-
-            this.appendStreamUpdate(line);
-            this.emit('title', {
-                id: this.pendingStreamUpdate.id,
-                line,
-                type: 'complete',
-            });
-        }
+        this.completePendingStreamTitle(startedAt);
 
         const update = {
             id: `${startedAt}-${++this.streamUpdateSequence}`,
@@ -399,12 +389,12 @@ export class Audio extends EventEmitter {
         });
     }
 
-    flushStreamTitle() {
-        if (!this.pendingStreamUpdate || !this.streamUpdatesLogFile) {
+    completePendingStreamTitle(endedAt = Date.now()) {
+        if (!this.pendingStreamUpdate) {
             return;
         }
 
-        const duration = Math.max(0, Math.round((Date.now() - this.pendingStreamUpdate.startedAt) / 1000));
+        const duration = Math.max(0, Math.round((endedAt - this.pendingStreamUpdate.startedAt) / 1000));
         const [timestamp, ...titleParts] = this.pendingStreamUpdate.line.split(' ');
         const line = `${timestamp} (${duration}s) ${titleParts.join(' ')}`;
 
@@ -415,6 +405,14 @@ export class Audio extends EventEmitter {
             type: 'complete',
         });
         this.pendingStreamUpdate = null;
+    }
+
+    flushStreamTitle() {
+        if (!this.pendingStreamUpdate || !this.streamUpdatesLogFile) {
+            return;
+        }
+
+        this.completePendingStreamTitle();
     }
 
     trimStreamUpdatesLog() {
