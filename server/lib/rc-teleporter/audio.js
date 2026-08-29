@@ -374,7 +374,8 @@ export class Audio extends EventEmitter {
 
         if (this.pendingStreamUpdate) {
             const duration = Math.max(0, Math.round((startedAt - this.pendingStreamUpdate.startedAt) / 1000));
-            const line = `${this.pendingStreamUpdate.line} (${duration}s)`;
+            const [timestamp, ...titleParts] = this.pendingStreamUpdate.line.split(' ');
+            const line = `${timestamp} (${duration}s) ${titleParts.join(' ')}`;
 
             this.appendStreamUpdate(line);
             this.emit('title', {
@@ -404,7 +405,8 @@ export class Audio extends EventEmitter {
         }
 
         const duration = Math.max(0, Math.round((Date.now() - this.pendingStreamUpdate.startedAt) / 1000));
-        const line = `${this.pendingStreamUpdate.line} (${duration}s)`;
+        const [timestamp, ...titleParts] = this.pendingStreamUpdate.line.split(' ');
+        const line = `${timestamp} (${duration}s) ${titleParts.join(' ')}`;
 
         this.appendStreamUpdate(line);
         this.emit('title', {
