@@ -26,6 +26,8 @@ import { spawn } from 'child_process';
 import https from 'https';
 import portAudio from 'naudiodon2';
 
+const MAX_STREAM_UPDATE_ENTRIES = 5000;
+
 export class Audio extends EventEmitter {
     constructor(ctx) {
         super();
@@ -40,10 +42,12 @@ export class Audio extends EventEmitter {
         this.injectedMetadataRetryTimer = null;
         this.injectedStreamTitle = '';
         this.streamUpdatesLogFile = ctx.streamUpdatesLogFile;
+        this.streamUpdateWrite = Promise.resolve();
         this.pendingStreamUpdate = null;
         this.streamUpdateSequence = 0;
         this.stopping = false;
 
+        this.trimStreamUpdatesLog();
         this.start();
     }
 
@@ -372,7 +376,7 @@ export class Audio extends EventEmitter {
             const duration = Math.max(0, Math.round((startedAt - this.pendingStreamUpdate.startedAt) / 1000));
             const line = `${this.pendingStreamUpdate.line} (${duration}s)`;
 
-            fs.appendFile(this.streamUpdatesLogFile, `${line}\n`, () => undefined);
+            this.appendStreamUpdate(line);
             this.emit('title', {
                 id: this.pendingStreamUpdate.id,
                 line,
@@ -402,13 +406,63 @@ export class Audio extends EventEmitter {
         const duration = Math.max(0, Math.round((Date.now() - this.pendingStreamUpdate.startedAt) / 1000));
         const line = `${this.pendingStreamUpdate.line} (${duration}s)`;
 
-        fs.appendFile(this.streamUpdatesLogFile, `${line}\n`, () => undefined);
+        this.appendStreamUpdate(line);
         this.emit('title', {
             id: this.pendingStreamUpdate.id,
             line,
             type: 'complete',
         });
         this.pendingStreamUpdate = null;
+    }
+
+    trimStreamUpdatesLog() {
+        if (!this.streamUpdatesLogFile) {
+            return;
+        }
+
+        this.streamUpdateWrite = this.streamUpdateWrite
+            .then(async () => {
+                let lines;
+
+                try {
+                    lines = (await fs.promises.readFile(this.streamUpdatesLogFile, 'utf8'))
+                        .split(/\r?\n/)
+                        .filter(Boolean);
+
+                } catch (error) {
+                    return;
+                }
+
+                if (lines.length > MAX_STREAM_UPDATE_ENTRIES) {
+                    await fs.promises.writeFile(
+                        this.streamUpdatesLogFile,
+                        `${lines.slice(-MAX_STREAM_UPDATE_ENTRIES).join('\n')}\n`,
+                    );
+                }
+            })
+            .catch(() => undefined);
+    }
+
+    appendStreamUpdate(line) {
+        this.streamUpdateWrite = this.streamUpdateWrite
+            .then(async () => {
+                let lines = [];
+
+                try {
+                    lines = (await fs.promises.readFile(this.streamUpdatesLogFile, 'utf8'))
+                        .split(/\r?\n/)
+                        .filter(Boolean);
+                } catch (error) {
+                    // The log is optional; it will be created by the write below.
+                }
+
+                lines.push(line);
+                await fs.promises.writeFile(
+                    this.streamUpdatesLogFile,
+                    `${lines.slice(-MAX_STREAM_UPDATE_ENTRIES).join('\n')}\n`,
+                );
+            })
+            .catch(() => undefined);
     }
 
     stopInjectedMixer() {

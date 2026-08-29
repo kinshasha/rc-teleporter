@@ -102,5 +102,8 @@ or the server shuts down; if the metadata connection ends unexpectedly, the
 server reconnects it using the normal audio reconnect interval. The audio
 connection is separate.
 
+The ignored `server/streamupdates.log` file is capped at the newest 5,000
+completed title entries.
+
 This is an audio mix, not a second selectable browser stream. It is therefore
 included in WebRTC, MP3 fallback, WAV, and raw PCM output consistently.
