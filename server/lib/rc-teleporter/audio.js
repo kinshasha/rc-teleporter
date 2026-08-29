@@ -36,6 +36,7 @@ export class Audio extends EventEmitter {
         this.injectedMixer = null;
         this.injectedMixerActive = false;
         this.injectedMetadataRequest = null;
+        this.injectedMetadataRetryTimer = null;
         this.injectedStreamTitle = '';
         this.stopping = false;
 
@@ -301,13 +302,43 @@ export class Audio extends EventEmitter {
                     }
                 }
             });
+
+            response.on('end', () => this.handleInjectedMetadataDisconnect(request));
+            response.on('error', () => this.handleInjectedMetadataDisconnect(request));
         });
 
-        request.on('error', () => undefined);
+        request.on('error', () => this.handleInjectedMetadataDisconnect(request));
         this.injectedMetadataRequest = request;
     }
 
+    handleInjectedMetadataDisconnect(request) {
+        if (this.injectedMetadataRequest !== request) {
+            return;
+        }
+
+        this.injectedMetadataRequest = null;
+        this.scheduleInjectedMetadataRetry();
+    }
+
+    scheduleInjectedMetadataRetry() {
+        if (this.stopping || !this.config.injectedStream?.enabled
+            || !this.config.injectedStream?.useStreamTitle
+            || this.injectedMetadataRequest || this.injectedMetadataRetryTimer) {
+            return;
+        }
+
+        this.injectedMetadataRetryTimer = setTimeout(() => {
+            this.injectedMetadataRetryTimer = null;
+            this.startInjectedMetadataMonitor(this.config.injectedStream.url);
+        }, this.config.reconnectInterval);
+    }
+
     stopInjectedMetadataMonitor() {
+        if (this.injectedMetadataRetryTimer) {
+            clearTimeout(this.injectedMetadataRetryTimer);
+            this.injectedMetadataRetryTimer = null;
+        }
+
         if (this.injectedMetadataRequest) {
             this.injectedMetadataRequest.destroy();
             this.injectedMetadataRequest = null;

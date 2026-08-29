@@ -98,7 +98,9 @@ the mixer retries using the existing audio reconnect interval.
 When stream-title mode is enabled, the metadata connection remains open for the
 life of the selected injected stream, allowing later `StreamTitle` changes to
 update the browser label. It is closed when the stream is disabled, replaced,
-or the server shuts down; the audio connection is separate.
+or the server shuts down; if the metadata connection ends unexpectedly, the
+server reconnects it using the normal audio reconnect interval. The audio
+connection is separate.
 
 This is an audio mix, not a second selectable browser stream. It is therefore
 included in WebRTC, MP3 fallback, WAV, and raw PCM output consistently.
