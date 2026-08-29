@@ -40,6 +40,8 @@ export class Audio extends EventEmitter {
         this.injectedMetadataRetryTimer = null;
         this.injectedStreamTitle = '';
         this.streamUpdatesLogFile = ctx.streamUpdatesLogFile;
+        this.pendingStreamUpdate = null;
+        this.streamUpdateSequence = 0;
         this.stopping = false;
 
         this.start();
@@ -357,13 +359,56 @@ export class Audio extends EventEmitter {
 
         this.injectedStreamTitle = title;
         if (this.streamUpdatesLogFile && !title.toLowerCase().startsWith('scanning')) {
-            const line = `${new Date().toISOString()} ${title}`;
-
-            fs.appendFile(this.streamUpdatesLogFile, `${line}\n`, () => undefined);
-            this.emit('title', line);
+            this.recordStreamTitle(title);
         }
         this.emit('status', `Injected stream title: ${title}`);
         return true;
+    }
+
+    recordStreamTitle(title) {
+        const startedAt = Date.now();
+
+        if (this.pendingStreamUpdate) {
+            const duration = Math.max(0, Math.round((startedAt - this.pendingStreamUpdate.startedAt) / 1000));
+            const line = `${this.pendingStreamUpdate.line} (${duration}s)`;
+
+            fs.appendFile(this.streamUpdatesLogFile, `${line}\n`, () => undefined);
+            this.emit('title', {
+                id: this.pendingStreamUpdate.id,
+                line,
+                type: 'complete',
+            });
+        }
+
+        const update = {
+            id: `${startedAt}-${++this.streamUpdateSequence}`,
+            line: `${new Date(startedAt).toISOString()} ${title}`,
+            startedAt,
+        };
+
+        this.pendingStreamUpdate = update;
+        this.emit('title', {
+            id: update.id,
+            line: update.line,
+            type: 'start',
+        });
+    }
+
+    flushStreamTitle() {
+        if (!this.pendingStreamUpdate || !this.streamUpdatesLogFile) {
+            return;
+        }
+
+        const duration = Math.max(0, Math.round((Date.now() - this.pendingStreamUpdate.startedAt) / 1000));
+        const line = `${this.pendingStreamUpdate.line} (${duration}s)`;
+
+        fs.appendFile(this.streamUpdatesLogFile, `${line}\n`, () => undefined);
+        this.emit('title', {
+            id: this.pendingStreamUpdate.id,
+            line,
+            type: 'complete',
+        });
+        this.pendingStreamUpdate = null;
     }
 
     stopInjectedMixer() {
@@ -381,6 +426,7 @@ export class Audio extends EventEmitter {
 
         this.injectedMixerActive = false;
         this.stopInjectedMetadataMonitor();
+        this.flushStreamTitle();
     }
 
     handleInjectedMixerStop(reason) {

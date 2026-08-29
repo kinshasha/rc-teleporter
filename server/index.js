@@ -460,10 +460,10 @@ function streamUpdatesPage() {
     };
     const render = () => {
         updates.replaceChildren();
-        lines.slice(page * pageSize, (page + 1) * pageSize).forEach((line) => {
+        lines.slice(page * pageSize, (page + 1) * pageSize).forEach((entry) => {
             const item = document.createElement('div');
             item.className = 'line';
-            item.textContent = titleOnly(line);
+            item.textContent = titleOnly(entry.line);
             updates.appendChild(item);
         });
         const pageCount = Math.max(1, Math.ceil(lines.length / pageSize));
@@ -472,8 +472,16 @@ function streamUpdatesPage() {
         previous.disabled = page === 0;
         next.disabled = page >= pageCount - 1;
     };
-    const addLine = (line) => {
-        lines.unshift(line);
+    const addUpdate = (update) => {
+        if (update.type === 'complete') {
+            const entry = lines.find((candidate) => candidate.id === update.id);
+
+            if (entry) entry.line = update.line;
+
+        } else if (update.type === 'start') {
+            lines.unshift({ id: update.id, line: update.line });
+        }
+
         lines = lines.slice(0, 1000);
         render();
     };
@@ -487,7 +495,7 @@ function streamUpdatesPage() {
     const startEvents = () => {
         const events = new EventSource('streamupdates/events');
         events.onopen = () => { status.textContent = 'Live'; };
-        events.onmessage = (event) => addLine(JSON.parse(event.data));
+        events.onmessage = (event) => addUpdate(JSON.parse(event.data));
         events.onerror = () => { status.textContent = 'Reconnecting...'; };
     };
     const refreshActiveStream = () => fetch('audio/injected-status', { cache: 'no-store' })
@@ -503,7 +511,10 @@ function streamUpdatesPage() {
     fetch('streamupdates/history', { cache: 'no-store' })
         .then((response) => response.json())
         .then((history) => {
-            lines = history.reverse().slice(0, 1000);
+            lines = history.reverse().slice(0, 1000).map((line, index) => ({
+                id: 'history-' + index,
+                line,
+            }));
             render();
         })
         .catch(() => { status.textContent = 'Unable to load history'; })
