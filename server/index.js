@@ -32,8 +32,8 @@ import https from 'https';
 import path from 'path';
 import url from 'url';
 
-import { validateTurnCredentials } from './lib/rc-scanner/config.js';
-import { RcScanner } from './lib/rc-scanner/main.js';
+import { validateTurnCredentials } from './lib/rc-teleporter/config.js';
+import { RcScanner } from './lib/rc-teleporter/main.js';
 
 const dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const startupLog = path.resolve(process.env.APP_DATA || dirname, 'npm-start.log');
