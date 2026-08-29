@@ -1,1 +1,12 @@
-[]
+[
+  {
+    "number": 1,
+    "url": "http://d.liveatc.net/ybbn7_twr",
+    "label": "BNE CENTRE (MULTI)"
+  },
+  {
+    "number": 2,
+    "url": "https://audio.example.net/backup.mp3",
+    "label": "Backup feed"
+  }
+]
