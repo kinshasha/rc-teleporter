@@ -36,7 +36,6 @@ export class Audio extends EventEmitter {
         this.injectedMixer = null;
         this.injectedMixerActive = false;
         this.injectedMetadataRequest = null;
-        this.injectedMetadataTimer = null;
         this.injectedStreamTitle = '';
         this.stopping = false;
 
@@ -260,10 +259,6 @@ export class Audio extends EventEmitter {
         request.on('response', (response) => {
             if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
                 response.resume();
-                if (this.injectedMetadataTimer) {
-                    clearTimeout(this.injectedMetadataTimer);
-                    this.injectedMetadataTimer = null;
-                }
                 this.injectedMetadataRequest = null;
                 this.startInjectedMetadataMonitor(new URL(response.headers.location, parsedUrl).toString());
                 return;
@@ -298,10 +293,7 @@ export class Audio extends EventEmitter {
                     const metadata = pending.subarray(metadataOffset + metadataInterval + 1, metadataEnd).toString('utf8');
                     metadataOffset = metadataEnd;
 
-                    if (this.updateInjectedStreamTitle(metadata)) {
-                        this.stopInjectedMetadataMonitor();
-                        return;
-                    }
+                    this.updateInjectedStreamTitle(metadata);
 
                     if (metadataOffset > metadataInterval * 2) {
                         pending = pending.subarray(metadataOffset);
@@ -313,17 +305,9 @@ export class Audio extends EventEmitter {
 
         request.on('error', () => undefined);
         this.injectedMetadataRequest = request;
-        this.injectedMetadataTimer = setTimeout(() => {
-            this.stopInjectedMetadataMonitor();
-        }, 60000);
     }
 
     stopInjectedMetadataMonitor() {
-        if (this.injectedMetadataTimer) {
-            clearTimeout(this.injectedMetadataTimer);
-            this.injectedMetadataTimer = null;
-        }
-
         if (this.injectedMetadataRequest) {
             this.injectedMetadataRequest.destroy();
             this.injectedMetadataRequest = null;
