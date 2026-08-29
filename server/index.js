@@ -157,7 +157,7 @@ export class App extends EventEmitter {
 
             next();
         });
-        registerStreamUpdatesRoutes(this.router, configFile, this.streamUpdateClients);
+        registerStreamUpdatesRoutes(this.router, configFile, this.streamUpdateClients, true);
         this.router.use(express.static(staticDir));
         this.router.use((req, res, next) => {
             if (['/', '/index.html'].includes(req.path)) {
@@ -190,7 +190,7 @@ export class App extends EventEmitter {
 
                 next();
             });
-            registerStreamUpdatesRoutes(this.viewerRouter, configFile, this.streamUpdateClients);
+            registerStreamUpdatesRoutes(this.viewerRouter, configFile, this.streamUpdateClients, false);
             this.viewerRouter.use(express.static(staticDir));
             this.viewerRouter.use((req, res, next) => {
                 if (['/', '/index.html'].includes(req.path)) {
@@ -357,12 +357,12 @@ function eventTimestamp() {
     return new Date().toISOString();
 }
 
-function registerStreamUpdatesRoutes(router, configFile, clients) {
+function registerStreamUpdatesRoutes(router, configFile, clients, allowClear) {
     const logFile = path.resolve(path.dirname(configFile), 'streamupdates.log');
 
     router.get('/streamupdates.html', (req, res) => {
         res.setHeader('Cache-Control', 'no-store');
-        return res.type('html').send(streamUpdatesPage());
+        return res.type('html').send(streamUpdatesPage(allowClear));
     });
 
     router.get('/streamupdates/history', (req, res) => {
@@ -370,7 +370,8 @@ function registerStreamUpdatesRoutes(router, configFile, clients) {
         return res.send(readStreamUpdates(logFile));
     });
 
-    router.post('/streamupdates/clear', (req, res) => {
+    if (allowClear) {
+        router.post('/streamupdates/clear', (req, res) => {
         try {
             fs.writeFileSync(logFile, '');
         } catch (error) {
@@ -382,8 +383,9 @@ function registerStreamUpdatesRoutes(router, configFile, clients) {
             client.flush?.();
         });
 
-        return res.status(204).end();
-    });
+            return res.status(204).end();
+        });
+    }
 
     router.get('/streamupdates/events', (req, res) => {
         res.status(200);
@@ -420,7 +422,7 @@ function readStreamUpdates(logFile) {
     }
 }
 
-function streamUpdatesPage() {
+function streamUpdatesPage(allowClear) {
     return `<!doctype html>
 <html lang="en">
 <head>
@@ -457,7 +459,7 @@ function streamUpdatesPage() {
         </select>
         <button id="previous" type="button">Newer</button>
         <button id="next" type="button">Older</button>
-        <button id="clear" type="button">Clear</button>
+        ${allowClear ? '<button id="clear" type="button">Clear</button>' : ''}
         <span id="page-label"></span>
         <span id="active-stream">Stream --</span>
     </div>
@@ -515,7 +517,7 @@ function streamUpdatesPage() {
     });
     previous.addEventListener('click', () => { page = Math.max(0, page - 1); render(); });
     next.addEventListener('click', () => { page++; render(); });
-    clear.addEventListener('click', () => fetch('streamupdates/clear', { method: 'POST' })
+    if (clear) clear.addEventListener('click', () => fetch('streamupdates/clear', { method: 'POST' })
         .then((response) => {
             if (!response.ok && response.status !== 204) throw new Error('clear failed');
         })
