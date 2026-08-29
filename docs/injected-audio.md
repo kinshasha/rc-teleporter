@@ -40,24 +40,24 @@ For multiple possible feeds, keep the entries in `server/streams.json`:
 ]
 ```
 
-Then select an entry from `server/config.json`:
+Then enable list mode in `server/config.json`:
 
 ```json
 {
-  "injectedStream": {
+    "injectedStream": {
     "enabled": true,
     "useStreamList": true,
-    "streamNumber": 1,
     "useStreamTitle": false,
     "label": "Fallback label"
   }
 }
 ```
 
-When `useStreamList` is `true`, the numbered entry supplies the URL and label.
-When it is `false`, the URL and label in `config.json` are used as before. A
-missing numbered entry disables the injected stream rather than silently using
-an unintended feed.
+When `useStreamList` is `true`, the client selector starts at stream `1` and
+the numbered entry supplies the URL and label. The selected number is runtime
+state and is not written into `config.json`. When it is `false`, the single URL
+and label in `config.json` are used as before. A missing numbered entry disables
+the injected stream rather than silently using an unintended feed.
 
 - `enabled`: must be `true` to start the mixer.
 - `url`: HTTP(S) MPEG/MP3 stream URL decoded by FFmpeg.
@@ -66,8 +66,6 @@ an unintended feed.
 - `useStreamTitle`: when `true`, use the live Icecast `StreamTitle` metadata
   when available; `label` remains the fallback until a title is received.
 - `useStreamList`: select the URL and label from `server/streams.json`.
-- `streamNumber`: numbered `streams.json` entry to use when `useStreamList` is
-  `true`.
 - `volume`: injected stream gain from `0` (silent) to `1` (equal to scanner
   input); `0.35` is the default.
 

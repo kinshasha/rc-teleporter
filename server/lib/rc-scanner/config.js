@@ -32,15 +32,18 @@ export class Config {
         const config = app.config.rcScanner;
         const injectedStream = config?.audio?.injectedStream;
         this.streamList = loadStreamList(app.configFile);
+        this.directInjectedStreamUrl = typeof injectedStream?.url === 'string' ? injectedStream.url.trim() : '';
+        this.directInjectedStreamLabel = typeof injectedStream?.label === 'string' ? injectedStream.label.trim() : '';
+        this.selectedStreamNumber = Number.isInteger(injectedStream?.streamNumber) ? injectedStream.streamNumber : 1;
         const selectedStream = injectedStream?.useStreamList
-            ? this.streamList.find((stream) => stream.number === injectedStream.streamNumber)
+            ? this.streamList.find((stream) => stream.number === this.selectedStreamNumber)
             : undefined;
         const injectedStreamUrl = injectedStream?.useStreamList
             ? selectedStream?.url || ''
-            : injectedStream?.url || '';
+            : this.directInjectedStreamUrl;
         const injectedStreamLabel = injectedStream?.useStreamList
-            ? selectedStream?.label || injectedStream?.label
-            : injectedStream?.label;
+            ? selectedStream?.label || this.directInjectedStreamLabel
+            : this.directInjectedStreamLabel;
         const injectedStreamEnabled = injectedStream?.enabled === true && injectedStreamUrl.length > 0;
 
         this.viewerSessions = new Map();
@@ -68,7 +71,6 @@ export class Config {
                 label: typeof injectedStreamLabel === 'string' && injectedStreamLabel.trim().length > 0
                     ? injectedStreamLabel.trim()
                     : 'Additional audio',
-                streamNumber: Number.isInteger(injectedStream?.streamNumber) ? injectedStream.streamNumber : 1,
                 useStreamList: injectedStream?.useStreamList === true,
                 useStreamTitle: injectedStream?.useStreamTitle === true,
                 url: typeof injectedStreamUrl === 'string' ? injectedStreamUrl.trim() : '',
@@ -142,7 +144,7 @@ export class Config {
                 injectedAudioMode: this.audio.injectedStream.mode,
                 injectedAudioLabel: this.audio.injectedStream.url ? app.rcScanner.audio.getInjectedStreamLabel() : undefined,
                 injectedAudioStreamCount: this.streamList.length,
-                injectedAudioStreamNumber: this.audio.injectedStream.streamNumber,
+                injectedAudioStreamNumber: this.selectedStreamNumber,
                 injectedAudioUseStreamList: this.audio.injectedStream.useStreamList,
                 injectedAudioUseStreamTitle: this.audio.injectedStream.useStreamTitle,
             });
@@ -156,7 +158,7 @@ export class Config {
                 label: app.rcScanner?.audio?.getInjectedStreamLabel?.() || this.audio.injectedStream.label,
                 mode: this.audio.injectedStream.mode,
                 streamCount: this.streamList.length,
-                streamNumber: this.audio.injectedStream.streamNumber,
+                streamNumber: this.selectedStreamNumber,
                 useStreamList: this.audio.injectedStream.useStreamList,
             });
         });
@@ -177,7 +179,7 @@ export class Config {
                 label: app.rcScanner.audio.getInjectedStreamLabel(),
                 mode: this.audio.injectedStream.mode,
                 streamCount: this.streamList.length,
-                streamNumber: this.audio.injectedStream.streamNumber,
+                streamNumber: this.selectedStreamNumber,
                 useStreamList: this.audio.injectedStream.useStreamList,
             });
         });
@@ -372,7 +374,7 @@ export class Config {
                     injectedAudioMode: this.audio.injectedStream.mode,
                     injectedAudioLabel: this.audio.injectedStream.url ? app.rcScanner.audio.getInjectedStreamLabel() : undefined,
                     injectedAudioStreamCount: this.streamList.length,
-                    injectedAudioStreamNumber: this.audio.injectedStream.streamNumber,
+                    injectedAudioStreamNumber: this.selectedStreamNumber,
                     injectedAudioUseStreamList: this.audio.injectedStream.useStreamList,
                     injectedAudioUseStreamTitle: this.audio.injectedStream.useStreamTitle,
                 });
@@ -386,7 +388,7 @@ export class Config {
                     label: app.rcScanner?.audio?.getInjectedStreamLabel?.() || this.audio.injectedStream.label,
                     mode: this.audio.injectedStream.mode,
                     streamCount: this.streamList.length,
-                    streamNumber: this.audio.injectedStream.streamNumber,
+                    streamNumber: this.selectedStreamNumber,
                     useStreamList: this.audio.injectedStream.useStreamList,
                 });
             });
@@ -406,7 +408,7 @@ export class Config {
             return false;
         }
 
-        this.audio.injectedStream.streamNumber = selectedStream.number;
+        this.selectedStreamNumber = selectedStream.number;
         this.audio.injectedStream.url = selectedStream.url;
         this.audio.injectedStream.label = selectedStream.label || 'Additional audio';
 

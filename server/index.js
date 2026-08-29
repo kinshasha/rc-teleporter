@@ -272,10 +272,20 @@ export class App extends EventEmitter {
     }
 
     saveConfig() {
-        const config = Object.keys(this.config)
+        const persistedConfig = JSON.parse(JSON.stringify(this.config));
+        const persistedStream = persistedConfig.rcScanner?.audio?.injectedStream;
+        const scannerConfig = this.rcScanner?.config;
+
+        if (persistedStream && scannerConfig) {
+            delete persistedStream.streamNumber;
+            persistedStream.url = scannerConfig.directInjectedStreamUrl;
+            persistedStream.label = scannerConfig.directInjectedStreamLabel;
+        }
+
+        const config = Object.keys(persistedConfig)
             .sort((a, b) => a.localeCompare(b))
             .reduce((conf, key) => {
-                conf[key] = this.config[key];
+                conf[key] = persistedConfig[key];
                 return conf;
             }, {});
 
