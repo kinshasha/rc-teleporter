@@ -4,7 +4,7 @@ import url from 'url';
 
 const dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const streamsFile = path.resolve(dirname, '../server/streams.json');
-const allowedHosts = [/\.liveatc\.net$/i, /^broadcastify\.cdnstream1\.com$/i];
+const allowedHosts = [/\.liveatc\.net$/i, /^audio\.broadcastify\.com$/i];
 const streams = JSON.parse(fs.readFileSync(streamsFile, 'utf8'));
 
 if (!Array.isArray(streams)) {
@@ -18,6 +18,12 @@ for (const stream of streams) {
 
     if (!allowedHosts.some((pattern) => pattern.test(parsedUrl.hostname))) {
         throw new Error(`Stream ${stream.number} uses a non-approved host: ${parsedUrl.hostname}`);
+    }
+
+    if (parsedUrl.hostname === 'audio.broadcastify.com'
+        && (parsedUrl.username !== 'USERNAME' || parsedUrl.password !== 'PASSWORD'
+            || !parsedUrl.pathname.endsWith('.mp3'))) {
+        throw new Error(`Broadcastify stream ${stream.number} must use the credential template and an .mp3 path`);
     }
 
     if (numbers.has(stream.number)) {

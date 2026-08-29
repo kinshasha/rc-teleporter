@@ -3,3 +3,4 @@
 /dist
 /client/.angular
 /server/npm-start.log
+/server/broadcastify.conf

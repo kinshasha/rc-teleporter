@@ -59,6 +59,27 @@ state and is not written into `config.json`. When it is `false`, the single URL
 and label in `config.json` are used as before. A missing numbered entry disables
 the injected stream rather than silently using an unintended feed.
 
+### Broadcastify credentials
+
+Broadcastify entries use the committed, credential-free template:
+
+```text
+https://USERNAME:PASSWORD@audio.broadcastify.com/STREAMID.mp3
+```
+
+Copy `server/broadcastify.conf.example` to `server/broadcastify.conf` and set:
+
+```text
+username=your_broadcastify_username
+password=your_broadcastify_password
+```
+
+The `.conf` file is ignored by Git. The server substitutes and URL-encodes the
+values in memory only; credentials are not written to `config.json`, sent to
+the browser, or included in logs. If the file is absent or incomplete,
+Broadcastify entries remain unavailable but other stream entries continue to
+work.
+
 - `enabled`: must be `true` to start the mixer.
 - `url`: HTTP(S) MPEG/MP3 stream URL decoded by FFmpeg.
 - `label`: public text shown on both browser interfaces. Do not place the URL

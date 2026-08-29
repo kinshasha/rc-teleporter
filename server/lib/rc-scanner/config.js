@@ -680,6 +680,7 @@ function loadStreamList(configFile) {
     }
 
     const streamsFile = path.resolve(path.dirname(configFile), 'streams.json');
+    const broadcastifyCredentials = loadBroadcastifyCredentials(configFile);
 
     try {
         const streams = JSON.parse(fs.readFileSync(streamsFile, 'utf8'));
@@ -692,12 +693,65 @@ function loadStreamList(configFile) {
             .map((stream) => ({
                 label: typeof stream?.label === 'string' ? stream.label.trim() : '',
                 number: Number.isInteger(stream?.number) ? stream.number : 0,
-                url: typeof stream?.url === 'string' ? stream.url.trim() : '',
+                url: typeof stream?.url === 'string'
+                    ? resolveBroadcastifyUrl(stream.url.trim(), broadcastifyCredentials)
+                    : '',
             }))
             .filter((stream) => stream.number > 0 && stream.url.length > 0);
 
     } catch (error) {
         return [];
+    }
+}
+
+function loadBroadcastifyCredentials(configFile) {
+    const credentialsFile = path.resolve(path.dirname(configFile), 'broadcastify.conf');
+
+    try {
+        const values = fs.readFileSync(credentialsFile, 'utf8').split(/\r?\n/).reduce((result, line) => {
+            const trimmed = line.trim();
+
+            if (!trimmed || trimmed.startsWith('#')) {
+                return result;
+            }
+
+            const separator = trimmed.indexOf('=');
+
+            if (separator > 0) {
+                result[trimmed.slice(0, separator).trim()] = trimmed.slice(separator + 1).trim();
+            }
+
+            return result;
+        }, {});
+
+        return {
+            password: values.password || '',
+            username: values.username || '',
+        };
+
+    } catch (error) {
+        return { password: '', username: '' };
+    }
+}
+
+function resolveBroadcastifyUrl(value, credentials) {
+    try {
+        const parsedUrl = new URL(value);
+
+        if (parsedUrl.hostname !== 'audio.broadcastify.com') {
+            return value;
+        }
+
+        if (!credentials.username || !credentials.password) {
+            return value;
+        }
+
+        parsedUrl.username = credentials.username;
+        parsedUrl.password = credentials.password;
+        return parsedUrl.toString();
+
+    } catch (error) {
+        return value;
     }
 }
 

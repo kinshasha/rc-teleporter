@@ -6,27 +6,27 @@
   },
   {
     "number": 2,
-    "url": "https://broadcastify.cdnstream1.com/47657",
+    "url": "https://USERNAME:PASSWORD@audio.broadcastify.com/47657.mp3",
     "label": "Philcom and Orion Brisbane"
   },
   {
     "number": 3,
-    "url": "https://broadcastify.cdnstream1.com/35648",
+    "url": "https://USERNAME:PASSWORD@audio.broadcastify.com/35648.mp3",
     "label": "Surf Lifesaving NSW & QldOld"
   },
   {
     "number": 4,
-    "url": "https://broadcastify.cdnstream1.com/24820",
+    "url": "https://USERNAME:PASSWORD@audio.broadcastify.com/24820.mp3",
     "label": "Fire Rescue Victoria (Metro)"
   },
   {
     "number": 5,
-    "url": "https://broadcastify.cdnstream1.com/46232",
+    "url": "https://USERNAME:PASSWORD@audio.broadcastify.com/46232.mp3",
     "label": "YMML Tower Broadcastify"
   },
   {
     "number": 6,
-    "url": "https://broadcastify.cdnstream1.com/43956",
+    "url": "https://USERNAME:PASSWORD@audio.broadcastify.com/43956.mp3",
     "label": "Melbourne Orion"
   },
   {

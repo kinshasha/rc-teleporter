@@ -1,0 +1,3 @@
+# Copy this file to broadcastify.conf and enter your account credentials.
+username=YOUR_BROADCASTIFY_USERNAME
+password=YOUR_BROADCASTIFY_PASSWORD
