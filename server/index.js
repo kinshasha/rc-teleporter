@@ -392,7 +392,7 @@ function readStreamUpdates(logFile) {
         return fs.readFileSync(logFile, 'utf8')
             .split(/\r?\n/)
             .filter(Boolean)
-            .slice(-100);
+            .slice(-1000);
 
     } catch (error) {
         return [];
@@ -412,6 +412,10 @@ function streamUpdatesPage() {
         main { margin: 0 auto; max-width: 900px; }
         h1 { font-size: 22px; margin: 0 0 16px; }
         #status { color: #a9e59d; font-size: 13px; margin-bottom: 12px; }
+        #controls { align-items: center; display: flex; gap: 10px; margin-bottom: 12px; }
+        #controls button, #controls select { background: #333; border: 1px solid #555; border-radius: 5px; color: #fff; padding: 7px 10px; }
+        #controls button:disabled { opacity: .4; }
+        #page-label { color: #bbb; font-size: 13px; margin-left: auto; }
         #updates { background: #111; border: 1px solid #444; border-radius: 8px; font: 14px/1.5 ui-monospace, monospace; min-height: 240px; overflow-wrap: anywhere; padding: 14px; white-space: pre-wrap; }
         .line { border-bottom: 1px solid #292929; padding: 5px 0; }
         .line:last-child { border-bottom: 0; }
@@ -421,33 +425,75 @@ function streamUpdatesPage() {
 <main>
     <h1>Stream updates</h1>
     <div id="status">Connecting...</div>
+    <div id="controls">
+        <label for="page-size">Events per page</label>
+        <select id="page-size">
+            <option value="50" selected>50</option>
+            <option value="100">100</option>
+            <option value="1000">1000</option>
+        </select>
+        <button id="previous" type="button">Newer</button>
+        <button id="next" type="button">Older</button>
+        <span id="page-label"></span>
+    </div>
     <section id="updates" aria-live="polite"></section>
 </main>
 <script>
     const updates = document.getElementById('updates');
     const status = document.getElementById('status');
+    const pageSizeControl = document.getElementById('page-size');
+    const previous = document.getElementById('previous');
+    const next = document.getElementById('next');
+    const pageLabel = document.getElementById('page-label');
+    let lines = [];
+    let pageSize = 50;
+    let page = 0;
     const localize = (line) => {
         const match = line.match(/^(\\S+)\\s+(.*)$/);
         if (!match) return line;
         const date = new Date(match[1]);
         return Number.isNaN(date.getTime()) ? line : date.toLocaleString() + ' ' + match[2];
     };
+    const render = () => {
+        updates.replaceChildren();
+        lines.slice(page * pageSize, (page + 1) * pageSize).forEach((line) => {
+            const item = document.createElement('div');
+            item.className = 'line';
+            item.textContent = localize(line);
+            updates.appendChild(item);
+        });
+        const pageCount = Math.max(1, Math.ceil(lines.length / pageSize));
+        page = Math.min(page, pageCount - 1);
+        pageLabel.textContent = 'Page ' + (page + 1) + ' / ' + pageCount + ' (' + lines.length + ' events)';
+        previous.disabled = page === 0;
+        next.disabled = page >= pageCount - 1;
+    };
     const addLine = (line) => {
-        const item = document.createElement('div');
-        item.className = 'line';
-        item.textContent = localize(line);
-        updates.appendChild(item);
-        while (updates.children.length > 100) updates.firstElementChild.remove();
-        updates.scrollTop = updates.scrollHeight;
+        lines.unshift(line);
+        lines = lines.slice(0, 1000);
+        render();
+    };
+    pageSizeControl.addEventListener('change', () => {
+        pageSize = Number(pageSizeControl.value);
+        page = 0;
+        render();
+    });
+    previous.addEventListener('click', () => { page = Math.max(0, page - 1); render(); });
+    next.addEventListener('click', () => { page++; render(); });
+    const startEvents = () => {
+        const events = new EventSource('streamupdates/events');
+        events.onopen = () => { status.textContent = 'Live'; };
+        events.onmessage = (event) => addLine(JSON.parse(event.data));
+        events.onerror = () => { status.textContent = 'Reconnecting...'; };
     };
     fetch('streamupdates/history', { cache: 'no-store' })
         .then((response) => response.json())
-        .then((lines) => lines.forEach(addLine))
-        .catch(() => { status.textContent = 'Unable to load history'; });
-    const events = new EventSource('streamupdates/events');
-    events.onopen = () => { status.textContent = 'Live'; };
-    events.onmessage = (event) => addLine(JSON.parse(event.data));
-    events.onerror = () => { status.textContent = 'Reconnecting...'; };
+        .then((history) => {
+            lines = history.reverse().slice(0, 1000);
+            render();
+        })
+        .catch(() => { status.textContent = 'Unable to load history'; })
+        .then(startEvents);
 </script>
 </body>
 </html>`;
