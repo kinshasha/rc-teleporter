@@ -416,6 +416,8 @@ function streamUpdatesPage() {
         #controls button, #controls select { background: #333; border: 1px solid #555; border-radius: 5px; color: #fff; padding: 7px 10px; }
         #controls button:disabled { opacity: .4; }
         #page-label { color: #bbb; font-size: 13px; margin-left: auto; }
+        #active-stream { color: #888; font-size: 13px; }
+        #active-stream.live { color: #a9e59d; }
         #updates { background: #111; border: 1px solid #444; border-radius: 8px; font: 14px/1.5 ui-monospace, monospace; min-height: 240px; overflow-wrap: anywhere; padding: 14px; white-space: pre-wrap; }
         .line { border-bottom: 1px solid #292929; padding: 5px 0; }
         .line:last-child { border-bottom: 0; }
@@ -435,6 +437,7 @@ function streamUpdatesPage() {
         <button id="previous" type="button">Newer</button>
         <button id="next" type="button">Older</button>
         <span id="page-label"></span>
+        <span id="active-stream">Stream --</span>
     </div>
     <section id="updates" aria-live="polite"></section>
 </main>
@@ -445,21 +448,20 @@ function streamUpdatesPage() {
     const previous = document.getElementById('previous');
     const next = document.getElementById('next');
     const pageLabel = document.getElementById('page-label');
+    const activeStream = document.getElementById('active-stream');
     let lines = [];
     let pageSize = 50;
     let page = 0;
-    const localize = (line) => {
+    const titleOnly = (line) => {
         const match = line.match(/^(\\S+)\\s+(.*)$/);
-        if (!match) return line;
-        const date = new Date(match[1]);
-        return Number.isNaN(date.getTime()) ? line : date.toLocaleString() + ' ' + match[2];
+        return match ? match[2] : line;
     };
     const render = () => {
         updates.replaceChildren();
         lines.slice(page * pageSize, (page + 1) * pageSize).forEach((line) => {
             const item = document.createElement('div');
             item.className = 'line';
-            item.textContent = localize(line);
+            item.textContent = titleOnly(line);
             updates.appendChild(item);
         });
         const pageCount = Math.max(1, Math.ceil(lines.length / pageSize));
@@ -486,6 +488,16 @@ function streamUpdatesPage() {
         events.onmessage = (event) => addLine(JSON.parse(event.data));
         events.onerror = () => { status.textContent = 'Reconnecting...'; };
     };
+    const refreshActiveStream = () => fetch('audio/injected-status', { cache: 'no-store' })
+        .then((response) => response.json())
+        .then((stream) => {
+            activeStream.textContent = 'Stream ' + (stream.streamNumber || '--') + '/' + (stream.streamCount || '--');
+            activeStream.classList.toggle('live', stream.active === true);
+        })
+        .catch(() => {
+            activeStream.textContent = 'Stream --';
+            activeStream.classList.remove('live');
+        });
     fetch('streamupdates/history', { cache: 'no-store' })
         .then((response) => response.json())
         .then((history) => {
@@ -494,6 +506,8 @@ function streamUpdatesPage() {
         })
         .catch(() => { status.textContent = 'Unable to load history'; })
         .then(startEvents);
+    refreshActiveStream();
+    setInterval(refreshActiveStream, 1000);
 </script>
 </body>
 </html>`;
