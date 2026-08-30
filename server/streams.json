@@ -1,13 +1,13 @@
 [
   {
     "number": 1,
-    "url": "http://d.liveatc.net/ybbn7_twr",
-    "label": "BNE CENTRE (MULTI)"
+    "url": "https://USERNAME:PASSWORD@audio.broadcastify.com/47657.mp3",
+    "label": "Philcom and Orion Brisbane"
   },
   {
     "number": 2,
-    "url": "https://USERNAME:PASSWORD@audio.broadcastify.com/47657.mp3",
-    "label": "Philcom and Orion Brisbane"
+    "url": "http://d.liveatc.net/ybbn7_twr",
+    "label": "BNE CENTRE (MULTI)"
   },
   {
     "number": 3,
