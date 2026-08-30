@@ -42,12 +42,15 @@ export class Audio extends EventEmitter {
         this.injectedMetadataRetryTimer = null;
         this.injectedStreamTitle = '';
         this.streamUpdatesLogFile = ctx.streamUpdatesLogFile;
+        this.airStreamLogFile = ctx.airStreamLogFile;
         this.streamUpdateWrite = Promise.resolve();
+        this.airStreamWrite = Promise.resolve();
         this.pendingStreamUpdate = null;
         this.streamUpdateSequence = 0;
         this.stopping = false;
 
         this.trimStreamUpdatesLog();
+        this.trimCappedLog(this.airStreamLogFile, 'airStreamWrite');
         this.start();
     }
 
@@ -366,8 +369,12 @@ export class Audio extends EventEmitter {
             this.completePendingStreamTitle();
         } else if (this.streamUpdatesLogFile) {
             this.recordStreamTitle(title);
+
+            if (title.toLowerCase().includes('qantas')) {
+                this.appendCappedLog(this.airStreamLogFile, 'airStreamWrite', `${new Date().toISOString()} ${title}`);
+            }
         }
-        this.emit('status', `Injected stream title: ${title}`);
+        this.emit('status', `${new Date().toISOString()} Injected stream title: ${title}`);
         return true;
     }
 
@@ -416,16 +423,20 @@ export class Audio extends EventEmitter {
     }
 
     trimStreamUpdatesLog() {
-        if (!this.streamUpdatesLogFile) {
+        this.trimCappedLog(this.streamUpdatesLogFile, 'streamUpdateWrite');
+    }
+
+    trimCappedLog(logFile, queueName) {
+        if (!logFile) {
             return;
         }
 
-        this.streamUpdateWrite = this.streamUpdateWrite
+        this[queueName] = this[queueName]
             .then(async () => {
                 let lines;
 
                 try {
-                    lines = (await fs.promises.readFile(this.streamUpdatesLogFile, 'utf8'))
+                    lines = (await fs.promises.readFile(logFile, 'utf8'))
                         .split(/\r?\n/)
                         .filter(Boolean);
 
@@ -435,7 +446,7 @@ export class Audio extends EventEmitter {
 
                 if (lines.length > MAX_STREAM_UPDATE_ENTRIES) {
                     await fs.promises.writeFile(
-                        this.streamUpdatesLogFile,
+                        logFile,
                         `${lines.slice(-MAX_STREAM_UPDATE_ENTRIES).join('\n')}\n`,
                     );
                 }
@@ -444,12 +455,20 @@ export class Audio extends EventEmitter {
     }
 
     appendStreamUpdate(line) {
-        this.streamUpdateWrite = this.streamUpdateWrite
+        this.appendCappedLog(this.streamUpdatesLogFile, 'streamUpdateWrite', line);
+    }
+
+    appendCappedLog(logFile, queueName, line) {
+        if (!logFile) {
+            return;
+        }
+
+        this[queueName] = this[queueName]
             .then(async () => {
                 let lines = [];
 
                 try {
-                    lines = (await fs.promises.readFile(this.streamUpdatesLogFile, 'utf8'))
+                    lines = (await fs.promises.readFile(logFile, 'utf8'))
                         .split(/\r?\n/)
                         .filter(Boolean);
                 } catch (error) {
@@ -458,7 +477,7 @@ export class Audio extends EventEmitter {
 
                 lines.push(line);
                 await fs.promises.writeFile(
-                    this.streamUpdatesLogFile,
+                    logFile,
                     `${lines.slice(-MAX_STREAM_UPDATE_ENTRIES).join('\n')}\n`,
                 );
             })

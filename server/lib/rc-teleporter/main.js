@@ -65,6 +65,9 @@ export class RcScanner extends EventEmitter {
         this.streamUpdatesLogFile = app.configFile
             ? path.resolve(path.dirname(app.configFile), 'streamupdates.log')
             : path.resolve(process.cwd(), 'streamupdates.log');
+        this.airStreamLogFile = app.configFile
+            ? path.resolve(path.dirname(app.configFile), 'airstream.log')
+            : path.resolve(process.cwd(), 'airstream.log');
 
         this.audio = new Audio(this);
         this.audio.on('status', console.log);
