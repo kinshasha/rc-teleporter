@@ -392,12 +392,12 @@ function registerStreamUpdatesRoutes(router, configFile, clients, airClients, al
     if (allowClear) {
         router.post('/streamupdates/clear', (req, res) => {
         try {
-            fs.writeFileSync(selectedLog(req).file, '');
+            fs.writeFileSync(logFile, '');
         } catch (error) {
             return res.status(500).send({ error: 'Unable to clear stream updates' });
         }
 
-        selectedLog(req).clients.forEach((client) => {
+        clients.forEach((client) => {
             client.write('event: clear\ndata: {}\n\n');
             client.flush?.();
         });
@@ -553,7 +553,8 @@ function streamUpdatesPage(allowClear) {
     });
     previous.addEventListener('click', () => { page = Math.max(0, page - 1); render(); });
     next.addEventListener('click', () => { page++; render(); });
-    if (clear) clear.addEventListener('click', () => fetch('streamupdates/clear?log=' + selectedLog, { method: 'POST' })
+    const updateClearVisibility = () => { if (clear) clear.hidden = selectedLog !== 'main'; };
+    if (clear) clear.addEventListener('click', () => fetch('streamupdates/clear', { method: 'POST' })
         .then((response) => {
             if (!response.ok && response.status !== 204) throw new Error('clear failed');
         })
@@ -579,7 +580,8 @@ function streamUpdatesPage(allowClear) {
             })
             .catch(() => { status.textContent = 'Unable to load history'; });
     };
-    logSelect.addEventListener('change', () => { selectedLog = logSelect.value; loadLog(); });
+    logSelect.addEventListener('change', () => { selectedLog = logSelect.value; updateClearVisibility(); loadLog(); });
+    updateClearVisibility();
     const setWakeState = (active, unavailable = false) => {
         wakeLockActive = active;
         wakeLockToggle.classList.toggle('is-active', active);
