@@ -371,7 +371,13 @@ export class Audio extends EventEmitter {
             this.recordStreamTitle(title);
 
             if (title.toLowerCase().includes('qantas')) {
-                this.appendCappedLog(this.airStreamLogFile, 'airStreamWrite', `${new Date().toISOString()} ${title}`);
+                const line = `${new Date().toISOString()} ${title}`;
+                this.appendCappedLog(this.airStreamLogFile, 'airStreamWrite', line);
+                this.emit('air-title', {
+                    id: `air-${Date.now()}-${++this.streamUpdateSequence}`,
+                    line,
+                    type: 'start',
+                });
             }
         }
         this.emit('status', `${new Date().toISOString()} Injected stream title: ${title}`);

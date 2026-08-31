@@ -6,7 +6,7 @@
     </ng-container>
 </div>
 
-<div *ngIf="(injectedAudioLabel && injectedAudioEnabled) || (injectedAudioUseStreamList && injectedAudioStreamCount > 1)"
+<div *ngIf="!isReadOnly && ((injectedAudioLabel && injectedAudioEnabled) || (injectedAudioUseStreamList && injectedAudioStreamCount > 1))"
     class="injected-audio-notice" [class.is-active]="injectedAudioActive" role="status">
     <ng-container *ngIf="injectedAudioLabel && injectedAudioEnabled">
         <span class="injected-audio-notice__indicator" aria-hidden="true"></span>
@@ -78,7 +78,18 @@
 </ng-container>
 
 <div *ngIf="isReadOnly" class="viewer-audio">
-    <span class="viewer-audio__streams">{{ viewerStreamCount }} {{ viewerStreamCount === 1 ? 'stream' : 'streams' }}</span>
+    <ng-container *ngIf="injectedAudioLabel && injectedAudioEnabled">
+        <span class="injected-audio-notice__indicator" [class.is-active]="injectedAudioActive" aria-hidden="true"></span>
+        <span class="injected-audio-notice__label">{{ injectedAudioMode === 'additionalOnly' ? 'Only audio' : 'Add audio' }}: {{ injectedAudioLabel }}</span>
+    </ng-container>
+    <span *ngIf="!injectedAudioLabel || !injectedAudioEnabled" class="viewer-audio__streams">
+        {{ viewerStreamCount }} {{ viewerStreamCount === 1 ? 'stream' : 'streams' }}
+    </span>
+    <div *ngIf="injectedAudioUseStreamList && injectedAudioStreamCount > 1" class="injected-audio-selector">
+        <button type="button" aria-label="Previous additional audio stream" disabled>←</button>
+        <span>Stream {{ injectedAudioStreamNumber }}/{{ injectedAudioStreamCount }}</span>
+        <button type="button" aria-label="Next additional audio stream" disabled>→</button>
+    </div>
 </div>
 
 <button *ngIf="isReadOnly" class="viewer-wake-toggle" type="button" [class.is-active]="screenWakeLockActive"

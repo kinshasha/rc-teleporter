@@ -141,6 +141,7 @@ export class App extends EventEmitter {
 
         this.router = express();
         this.streamUpdateClients = new Set();
+        this.airStreamUpdateClients = new Set();
         this.router.disable('x-powered-by');
         this.router.use(compression());
         this.router.use(cors());
@@ -157,7 +158,7 @@ export class App extends EventEmitter {
 
             next();
         });
-        registerStreamUpdatesRoutes(this.router, configFile, this.streamUpdateClients, true);
+        registerStreamUpdatesRoutes(this.router, configFile, this.streamUpdateClients, this.airStreamUpdateClients, true);
         this.router.use(express.static(staticDir));
         this.router.use((req, res, next) => {
             if (['/', '/index.html'].includes(req.path)) {
@@ -190,7 +191,7 @@ export class App extends EventEmitter {
 
                 next();
             });
-            registerStreamUpdatesRoutes(this.viewerRouter, configFile, this.streamUpdateClients, false);
+            registerStreamUpdatesRoutes(this.viewerRouter, configFile, this.streamUpdateClients, this.airStreamUpdateClients, false);
             this.viewerRouter.use(express.static(staticDir));
             this.viewerRouter.use((req, res, next) => {
                 if (['/', '/index.html'].includes(req.path)) {
@@ -251,7 +252,19 @@ export class App extends EventEmitter {
         this.rcScanner.audio.on('title', (line) => {
             const event = `data: ${JSON.stringify(line)}\n\n`;
 
-            this.streamUpdateClients.forEach((res) => res.write(event));
+            this.streamUpdateClients.forEach((res) => {
+                res.write(event);
+                res.flush?.();
+            });
+        });
+
+        this.rcScanner.audio.on('air-title', (line) => {
+            const event = `data: ${JSON.stringify(line)}\n\n`;
+
+            this.airStreamUpdateClients.forEach((res) => {
+                res.write(event);
+                res.flush?.();
+            });
         });
 
         this.rcScanner.on('config', () => this.saveConfig());
@@ -357,8 +370,14 @@ function eventTimestamp() {
     return new Date().toISOString();
 }
 
-function registerStreamUpdatesRoutes(router, configFile, clients, allowClear) {
-    const logFile = path.resolve(path.dirname(configFile), 'streamupdates.log');
+function registerStreamUpdatesRoutes(router, configFile, clients, airClients, allowClear) {
+    const logDirectory = path.dirname(configFile);
+    const logFile = path.resolve(logDirectory, 'streamupdates.log');
+    const airLogFile = path.resolve(logDirectory, 'airstream.log');
+
+    const selectedLog = (req) => req.query.log === 'qantas'
+        ? { file: airLogFile, clients: airClients }
+        : { file: logFile, clients };
 
     router.get('/streamupdates.html', (req, res) => {
         res.setHeader('Cache-Control', 'no-store');
@@ -367,18 +386,18 @@ function registerStreamUpdatesRoutes(router, configFile, clients, allowClear) {
 
     router.get('/streamupdates/history', (req, res) => {
         res.setHeader('Cache-Control', 'no-store');
-        return res.send(readStreamUpdates(logFile));
+        return res.send(readStreamUpdates(selectedLog(req).file));
     });
 
     if (allowClear) {
         router.post('/streamupdates/clear', (req, res) => {
         try {
-            fs.writeFileSync(logFile, '');
+            fs.writeFileSync(selectedLog(req).file, '');
         } catch (error) {
             return res.status(500).send({ error: 'Unable to clear stream updates' });
         }
 
-        clients.forEach((client) => {
+        selectedLog(req).clients.forEach((client) => {
             client.write('event: clear\ndata: {}\n\n');
             client.flush?.();
         });
@@ -396,7 +415,8 @@ function registerStreamUpdatesRoutes(router, configFile, clients, allowClear) {
         res.flushHeaders?.();
         res.write(': connected\n\n');
         res.flush?.();
-        clients.add(res);
+        const streamClients = selectedLog(req).clients;
+        streamClients.add(res);
 
         const keepAlive = setInterval(() => {
             res.write(': keep-alive\n\n');
@@ -405,7 +425,7 @@ function registerStreamUpdatesRoutes(router, configFile, clients, allowClear) {
 
         req.on('close', () => {
             clearInterval(keepAlive);
-            clients.delete(res);
+            streamClients.delete(res);
         });
     });
 }
@@ -435,12 +455,15 @@ function streamUpdatesPage(allowClear) {
         main { margin: 0 auto; max-width: 900px; }
         h1 { font-size: 22px; margin: 0 0 16px; }
         #status { color: #a9e59d; font-size: 13px; margin-bottom: 12px; }
-        #controls { align-items: center; display: flex; gap: 10px; margin-bottom: 12px; }
+        #controls { align-items: center; display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; padding-right: 64px; position: relative; }
         #controls button, #controls select { background: #333; border: 1px solid #555; border-radius: 5px; color: #fff; padding: 7px 10px; }
         #controls button:disabled { opacity: .4; }
         #page-label { color: #bbb; font-size: 13px; margin-left: auto; }
         #active-stream { color: #888; font-size: 13px; }
         #active-stream.live { color: #a9e59d; }
+        #wake-lock-toggle { align-items: center; background: #373737; border: 1px solid #555; border-radius: 50%; color: #fff; cursor: pointer; display: flex; font-size: 22px; height: 44px; justify-content: center; padding: 0; position: absolute; right: 0; top: -6px; width: 44px; }
+        #wake-lock-toggle.is-active { background: #2f6b2a; border-color: #a9e59d; }
+        #wake-lock-toggle.is-unavailable { background: #5c3e24; border-color: #dcb379; }
         #updates { background: #111; border: 1px solid #444; border-radius: 8px; font: 14px/1.5 ui-monospace, monospace; min-height: 240px; overflow-wrap: anywhere; padding: 14px; white-space: pre-wrap; }
         .line { border-bottom: 1px solid #292929; padding: 5px 0; }
         .line:last-child { border-bottom: 0; }
@@ -460,8 +483,14 @@ function streamUpdatesPage(allowClear) {
         <button id="previous" type="button">Newer</button>
         <button id="next" type="button">Older</button>
         ${allowClear ? '<button id="clear" type="button">Clear</button>' : ''}
+        <label for="log-select">Log</label>
+        <select id="log-select">
+            <option value="main" selected>Main stream</option>
+            <option value="qantas">Qantas stream</option>
+        </select>
         <span id="page-label"></span>
         <span id="active-stream">Stream --</span>
+        <button id="wake-lock-toggle" type="button" aria-label="Keep screen on" title="Keep screen on">☀</button>
     </div>
     <section id="updates" aria-live="polite"></section>
 </main>
@@ -472,11 +501,18 @@ function streamUpdatesPage(allowClear) {
     const previous = document.getElementById('previous');
     const next = document.getElementById('next');
     const clear = document.getElementById('clear');
+    const logSelect = document.getElementById('log-select');
+    const wakeLockToggle = document.getElementById('wake-lock-toggle');
     const pageLabel = document.getElementById('page-label');
     const activeStream = document.getElementById('active-stream');
     let lines = [];
     let pageSize = 50;
     let page = 0;
+    let selectedLog = 'main';
+    let events;
+    let wakeLock;
+    let wakeVideo;
+    let wakeLockActive = false;
     const titleOnly = (line) => {
         const match = line.match(/^(\\S+)\\s+(.*)$/);
         if (!match) return line;
@@ -517,18 +553,63 @@ function streamUpdatesPage(allowClear) {
     });
     previous.addEventListener('click', () => { page = Math.max(0, page - 1); render(); });
     next.addEventListener('click', () => { page++; render(); });
-    if (clear) clear.addEventListener('click', () => fetch('streamupdates/clear', { method: 'POST' })
+    if (clear) clear.addEventListener('click', () => fetch('streamupdates/clear?log=' + selectedLog, { method: 'POST' })
         .then((response) => {
             if (!response.ok && response.status !== 204) throw new Error('clear failed');
         })
         .catch(() => { status.textContent = 'Unable to clear history'; }));
     const startEvents = () => {
-        const events = new EventSource('streamupdates/events');
+        if (events) events.close();
+        events = new EventSource('streamupdates/events?log=' + selectedLog);
         events.onopen = () => { status.textContent = 'Live'; };
         events.onmessage = (event) => addUpdate(JSON.parse(event.data));
         events.addEventListener('clear', () => { lines = []; page = 0; render(); });
         events.onerror = () => { status.textContent = 'Reconnecting...'; };
     };
+    const loadLog = () => {
+        if (events) events.close();
+        status.textContent = 'Loading...';
+        fetch('streamupdates/history?log=' + selectedLog, { cache: 'no-store' })
+            .then((response) => response.json())
+            .then((history) => {
+                lines = history.reverse().slice(0, 1000).map((line, index) => ({ id: selectedLog + '-history-' + index, line }));
+                page = 0;
+                render();
+                startEvents();
+            })
+            .catch(() => { status.textContent = 'Unable to load history'; });
+    };
+    logSelect.addEventListener('change', () => { selectedLog = logSelect.value; loadLog(); });
+    const setWakeState = (active, unavailable = false) => {
+        wakeLockActive = active;
+        wakeLockToggle.classList.toggle('is-active', active);
+        wakeLockToggle.classList.toggle('is-unavailable', unavailable);
+        wakeLockToggle.textContent = '☀';
+        wakeLockToggle.title = unavailable ? 'Screen lock unavailable' : active ? 'Allow screen sleep' : 'Keep screen on';
+        wakeLockToggle.setAttribute('aria-label', wakeLockToggle.title);
+    };
+    const releaseWakeLock = async () => {
+        if (wakeLock) { await wakeLock.release(); wakeLock = undefined; }
+        if (wakeVideo) { wakeVideo.pause(); wakeVideo.removeAttribute('src'); wakeVideo.load(); wakeVideo.remove(); wakeVideo = undefined; }
+        setWakeState(false);
+    };
+    const enableWakeLock = async () => {
+        try {
+            if (navigator.wakeLock) {
+                wakeLock = await navigator.wakeLock.request('screen');
+                setWakeState(true);
+                wakeLock.addEventListener?.('release', () => { wakeLock = undefined; setWakeState(false); });
+                return;
+            }
+            const video = document.createElement('video');
+            video.autoplay = true; video.loop = true; video.muted = true; video.playsInline = true;
+            video.src = 'assets/screen-wake.mp4'; video.style.cssText = 'height:1px;left:0;opacity:.01;pointer-events:none;position:fixed;top:0;width:1px;';
+            document.body.appendChild(video); wakeVideo = video;
+            await video.play(); setWakeState(true);
+        } catch (error) { if (wakeVideo) { wakeVideo.remove(); wakeVideo = undefined; } setWakeState(false, true); }
+    };
+    wakeLockToggle.addEventListener('click', () => wakeLockActive ? releaseWakeLock() : enableWakeLock());
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && wakeLockActive && !wakeLock) enableWakeLock(); });
     const refreshActiveStream = () => fetch('audio/injected-status', { cache: 'no-store' })
         .then((response) => response.json())
         .then((stream) => {
@@ -539,17 +620,7 @@ function streamUpdatesPage(allowClear) {
             activeStream.textContent = 'Stream --';
             activeStream.classList.remove('live');
         });
-    fetch('streamupdates/history', { cache: 'no-store' })
-        .then((response) => response.json())
-        .then((history) => {
-            lines = history.reverse().slice(0, 1000).map((line, index) => ({
-                id: 'history-' + index,
-                line,
-            }));
-            render();
-        })
-        .catch(() => { status.textContent = 'Unable to load history'; })
-        .then(startEvents);
+    loadLog();
     refreshActiveStream();
     setInterval(refreshActiveStream, 1000);
 </script>

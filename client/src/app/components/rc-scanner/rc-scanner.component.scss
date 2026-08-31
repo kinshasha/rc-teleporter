@@ -75,6 +75,10 @@
   box-shadow: 0 0 8px currentColor;
 }
 
+.injected-audio-notice__indicator.is-active {
+  box-shadow: 0 0 8px currentColor;
+}
+
 .wake-lock-toggle {
   background: rgba(55, 55, 55, 0.96);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -126,6 +130,10 @@
   transform: translateX(-50%);
   width: max-content;
   z-index: 30;
+}
+
+.viewer-audio .injected-audio-selector {
+  margin: 0 0 0 10px;
 }
 
 .viewer-audio__streams {
