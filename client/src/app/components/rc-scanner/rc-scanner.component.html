@@ -77,12 +77,13 @@
 </div>
 </ng-container>
 
-<div *ngIf="isReadOnly" class="viewer-audio">
+<div *ngIf="isReadOnly" class="viewer-audio" [class.is-live]="injectedAudioActive"
+    [class.is-idle]="!injectedAudioActive">
     <ng-container *ngIf="injectedAudioLabel && injectedAudioEnabled">
         <span class="injected-audio-notice__indicator" [class.is-active]="injectedAudioActive" aria-hidden="true"></span>
         <span class="injected-audio-notice__label">{{ injectedAudioMode === 'additionalOnly' ? 'Only audio' : 'Add audio' }}: {{ injectedAudioLabel }}</span>
     </ng-container>
-    <span *ngIf="!injectedAudioLabel || !injectedAudioEnabled" class="viewer-audio__streams">
+    <span class="viewer-audio__streams">
         {{ viewerStreamCount }} {{ viewerStreamCount === 1 ? 'stream' : 'streams' }}
     </span>
     <div *ngIf="injectedAudioUseStreamList && injectedAudioStreamCount > 1" class="injected-audio-selector">

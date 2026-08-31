@@ -136,8 +136,15 @@
   margin: 0 0 0 10px;
 }
 
+.viewer-audio.is-live {
+  color: #a9e59d;
+}
+
+.viewer-audio.is-idle {
+  color: #dcb379;
+}
+
 .viewer-audio__streams {
-  color: rgba(255, 255, 255, 0.72);
   font-size: 12px;
   letter-spacing: 0.05em;
   text-transform: uppercase;
